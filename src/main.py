@@ -73,9 +73,17 @@ def main():
     # Import modules
     from config import Config
     from models import Profile, Hotkey, Rect
-    from ui.views.main_window import MainWindow
     from ui.widgets.system_tray import SystemTrayManager
     from app_controller import AppController, AppControllerError
+
+    # Use new Noa UI by default, set NOALOG_CLASSIC=1 for old UI
+    use_classic_ui = os.environ.get("NOALOG_CLASSIC", "0") == "1"
+    if use_classic_ui:
+        from ui.views.main_window import MainWindow
+        logger.info("Using classic UI")
+    else:
+        from ui.views.noa_main_window import NoaMainWindow as MainWindow
+        logger.info("Using new Noa UI")
 
     # Load configuration
     config = Config()

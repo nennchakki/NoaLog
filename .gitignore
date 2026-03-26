@@ -100,3 +100,4 @@ inference/
 
 # Local configuration (user-specific)
 config.local.json
+docs/

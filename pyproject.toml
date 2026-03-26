@@ -55,9 +55,9 @@ build = [
 noalog = "src.main:main"
 
 [project.urls]
-Homepage = "https://github.com/noalog/noalog"
-Repository = "https://github.com/noalog/noalog"
-Issues = "https://github.com/noalog/noalog/issues"
+Homepage = "https://github.com/nennchakki/NoaLog"
+Repository = "https://github.com/nennchakki/NoaLog"
+Issues = "https://github.com/nennchakki/NoaLog/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]

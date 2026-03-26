@@ -38,6 +38,7 @@ from ui.widgets.halo_indicator import HaloIndicator
 from ui.widgets.log_card import LogCard
 from ui.widgets.copy_panel import CopyPanel
 from ui.widgets.detail_panel import DetailPanel
+from ui.views.profile_editor import ProfileEditorDialog
 from ui.styles.tokens import COLORS, TYPOGRAPHY, SPACING, SHAPES, LAYOUT
 
 logger = logging.getLogger(__name__)
@@ -164,16 +165,33 @@ class NoaMainWindow(QMainWindow):
 
         layout.addStretch()
 
-        # Hotkey display
-        self._hotkey_label = QLabel("Hotkey: Cmd+Option+L")
+        # Hotkey display (capture and narrator)
+        hotkey_container = QWidget()
+        hotkey_layout = QVBoxLayout(hotkey_container)
+        hotkey_layout.setContentsMargins(0, 0, 0, 0)
+        hotkey_layout.setSpacing(2)
+
+        self._hotkey_label = QLabel("Capture: Option+L")
         self._hotkey_label.setObjectName("hotkeyLabel")
         self._hotkey_label.setStyleSheet(f"""
             QLabel#hotkeyLabel {{
                 color: {COLORS['accent_light']};
-                font-size: {TYPOGRAPHY['text_sm']};
+                font-size: {TYPOGRAPHY['text_xs']};
             }}
         """)
-        layout.addWidget(self._hotkey_label)
+        hotkey_layout.addWidget(self._hotkey_label)
+
+        self._narrator_hotkey_label = QLabel("Narrator: Option+N")
+        self._narrator_hotkey_label.setObjectName("narratorHotkeyLabel")
+        self._narrator_hotkey_label.setStyleSheet(f"""
+            QLabel#narratorHotkeyLabel {{
+                color: {COLORS['accent_light']};
+                font-size: {TYPOGRAPHY['text_xs']};
+            }}
+        """)
+        hotkey_layout.addWidget(self._narrator_hotkey_label)
+
+        layout.addWidget(hotkey_container)
 
         layout.addSpacerItem(QSpacerItem(24, 0))
 
@@ -333,9 +351,13 @@ class NoaMainWindow(QMainWindow):
         self._edit_profile_btn = QPushButton("Edit")
         self._edit_profile_btn.setObjectName("secondaryButton")
         self._edit_profile_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._edit_profile_btn.clicked.connect(self._on_edit_profile_clicked)
         btn_layout.addWidget(self._edit_profile_btn)
 
         layout.addLayout(btn_layout)
+
+        # Connect new profile button
+        self._new_profile_btn.clicked.connect(self._on_new_profile_clicked)
 
         return section
 
@@ -541,7 +563,7 @@ class NoaMainWindow(QMainWindow):
 
         # Copy Panel
         self._copy_panel = CopyPanel()
-        self._copy_panel.setMaximumHeight(160)
+        self._copy_panel.setMaximumHeight(180)
         layout.addWidget(self._copy_panel)
 
         return pane
@@ -562,27 +584,37 @@ class NoaMainWindow(QMainWindow):
         """)
         self.setStatusBar(self._statusbar)
 
-        # OCR status
-        self._ocr_status_label = QLabel("OCR: Initializing...")
-        self._statusbar.addWidget(self._ocr_status_label)
+        # Left side: Status message (uses showMessage)
+        # showMessage will display temporary messages
 
-        # Spacer
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self._statusbar.addWidget(spacer, 1)
-
-        # Last capture time
-        self._last_capture_label = QLabel("Last capture: -")
-        self._statusbar.addWidget(self._last_capture_label)
+        # Right side: Permanent widgets
+        # OCR Engine indicator
+        self._ocr_status_label = QLabel()
+        self._ocr_status_label.setMinimumWidth(120)
+        self._statusbar.addPermanentWidget(self._ocr_status_label)
 
         # Separator
-        sep1 = QLabel("|")
+        sep1 = QLabel("│")
         sep1.setStyleSheet(f"color: {COLORS['line']};")
-        self._statusbar.addWidget(sep1)
+        self._statusbar.addPermanentWidget(sep1)
+
+        # Last capture time
+        self._last_capture_label = QLabel()
+        self._last_capture_label.setMinimumWidth(100)
+        self._statusbar.addPermanentWidget(self._last_capture_label)
+
+        # Separator
+        sep2 = QLabel("│")
+        sep2.setStyleSheet(f"color: {COLORS['line']};")
+        self._statusbar.addPermanentWidget(sep2)
 
         # Entry count
-        self._status_entry_count_label = QLabel("Entries: 0")
-        self._statusbar.addWidget(self._status_entry_count_label)
+        self._status_entry_count_label = QLabel()
+        self._status_entry_count_label.setMinimumWidth(80)
+        self._statusbar.addPermanentWidget(self._status_entry_count_label)
+
+        # Initialize with readable labels
+        self._update_statusbar_labels()
 
     def _setup_shortcuts(self) -> None:
         """Setup keyboard shortcuts."""
@@ -661,8 +693,8 @@ class NoaMainWindow(QMainWindow):
         """
         self._log_entries.insert(0, entry)
 
-        # Create LogCard widget
-        card = LogCard(entry)
+        # Create LogCard widget (index will be set by _update_card_indices)
+        card = LogCard(entry, index=0)
         card.clicked.connect(lambda eid=entry.id: self._on_card_clicked(eid))
         card.double_clicked.connect(lambda eid=entry.id: self._on_card_double_clicked(eid))
         card.selection_toggled.connect(self._on_card_selection_toggled)
@@ -678,6 +710,9 @@ class NoaMainWindow(QMainWindow):
         # Insert at top
         self._log_list.insertItem(0, item)
         self._log_list.setItemWidget(item, card)
+
+        # Update card indices (oldest = #1)
+        self._update_card_indices()
 
         # Update stats and copy panel
         self._update_stats()
@@ -716,8 +751,9 @@ class NoaMainWindow(QMainWindow):
         Set the OCR status display.
 
         Args:
-            status: OCR status string
+            status: OCR status string (engine name)
         """
+        self._ocr_engine_name = status
         self._ocr_status_label.setText(f"OCR: {status}")
 
     def get_current_profile(self) -> Optional[Profile]:
@@ -757,17 +793,43 @@ class NoaMainWindow(QMainWindow):
     # Internal Methods
     # =========================================================================
 
+    def _update_statusbar_labels(self) -> None:
+        """Initialize/update all statusbar labels with full readable text."""
+        # OCR status
+        ocr_text = getattr(self, '_ocr_engine_name', 'Initializing...')
+        self._ocr_status_label.setText(f"OCR: {ocr_text}")
+
+        # Last capture
+        if self._last_capture_time:
+            time_str = self._last_capture_time.strftime("%H:%M:%S")
+            self._last_capture_label.setText(f"Last: {time_str}")
+        else:
+            self._last_capture_label.setText("Last: --:--:--")
+
+        # Entry count
+        count = len(self._log_entries)
+        self._status_entry_count_label.setText(f"Logs: {count}")
+
     def _update_stats(self) -> None:
         """Update statistics display."""
         count = len(self._log_entries)
         self._entry_count_label.setText(str(count))
-        self._status_entry_count_label.setText(f"Entries: {count}")
+        self._status_entry_count_label.setText(f"Logs: {count}")
+
+    def _update_card_indices(self) -> None:
+        """Update index numbers for all log cards (oldest = #1)."""
+        total = len(self._log_entries)
+        for i, entry in enumerate(self._log_entries):
+            if entry.id in self._log_cards:
+                # 最古が#1なので、total - i で計算
+                index = total - i
+                self._log_cards[entry.id].index = index
 
     def _update_last_capture_display(self) -> None:
         """Update the last capture time display."""
         if self._last_capture_time:
             time_str = self._last_capture_time.strftime("%H:%M:%S")
-            self._last_capture_label.setText(f"Last capture: {time_str}")
+            self._last_capture_label.setText(f"Last: {time_str}")
 
     def _update_copy_panel(self) -> None:
         """Update the copy panel with current entries and selection."""
@@ -799,11 +861,14 @@ class NoaMainWindow(QMainWindow):
                 )
                 item.setHidden(not visible)
 
-    def _update_hotkey_display(self, keys: List[str]) -> None:
+    def _update_hotkey_display(self, keys: List[str], hotkey_type: str = "capture") -> None:
         """Update the hotkey display in header."""
         if keys:
             keys_str = "+".join(k.capitalize() for k in keys)
-            self._hotkey_label.setText(f"Hotkey: {keys_str}")
+            if hotkey_type == "capture":
+                self._hotkey_label.setText(f"Capture: {keys_str}")
+            elif hotkey_type == "narrator":
+                self._narrator_hotkey_label.setText(f"Narrator: {keys_str}")
 
     # =========================================================================
     # Signal Handlers
@@ -825,10 +890,89 @@ class NoaMainWindow(QMainWindow):
 
     @Slot()
     def _on_settings_clicked(self) -> None:
-        """Handle settings button click."""
+        """Handle settings button click - open profile editor for current profile."""
         logger.info("Settings clicked")
-        # TODO: Open settings dialog
-        self.hotkey_settings_changed.emit({})
+        if self._current_profile:
+            self._open_profile_editor(self._current_profile)
+        else:
+            self.set_status("No profile selected")
+
+    @Slot()
+    def _on_new_profile_clicked(self) -> None:
+        """Handle new profile button click."""
+        logger.info("New profile clicked")
+        self._open_profile_editor(None, is_new=True)
+
+    @Slot()
+    def _on_edit_profile_clicked(self) -> None:
+        """Handle edit profile button click."""
+        logger.info("Edit profile clicked")
+        if self._current_profile:
+            self._open_profile_editor(self._current_profile)
+        else:
+            self.set_status("No profile selected")
+
+    def _open_profile_editor(self, profile: Optional[Profile], is_new: bool = False) -> None:
+        """
+        Open the profile editor dialog.
+
+        Args:
+            profile: Profile to edit (None for new profile)
+            is_new: If True, create a new profile
+        """
+        dialog = ProfileEditorDialog(self)
+
+        if is_new or profile is None:
+            dialog.set_new_mode()
+        else:
+            dialog.set_profile(profile)
+
+        # Connect the profile_saved signal
+        dialog.profile_saved.connect(self._on_profile_saved)
+
+        dialog.exec()
+
+    @Slot(object)
+    def _on_profile_saved(self, profile: Profile) -> None:
+        """
+        Handle profile saved signal from editor dialog.
+
+        Args:
+            profile: The saved Profile object
+        """
+        logger.info(f"Profile saved: {profile.name}")
+
+        # Check if this is an existing profile or new
+        existing_idx = -1
+        for i, p in enumerate(self._profiles):
+            if p.id == profile.id:
+                existing_idx = i
+                break
+
+        if existing_idx >= 0:
+            # Update existing profile
+            self._profiles[existing_idx] = profile
+            self._profile_combo.setItemText(existing_idx, profile.name)
+            logger.info(f"Updated existing profile: {profile.name}")
+        else:
+            # Add new profile
+            self._profiles.append(profile)
+            self._profile_combo.addItem(profile.name, profile.id)
+            # Select the new profile
+            self._profile_combo.setCurrentIndex(len(self._profiles) - 1)
+            logger.info(f"Added new profile: {profile.name}")
+
+        # Update current profile reference
+        self._current_profile = profile
+
+        # Emit hotkey settings changed if hotkey was configured
+        if profile.hotkey and profile.hotkey.keys:
+            self.hotkey_settings_changed.emit({
+                "profile_id": profile.id,
+                "hotkey": profile.hotkey.keys,
+            })
+
+        self.set_status(f"Profile '{profile.name}' saved")
 
     @Slot(str)
     def _on_search_text_changed(self, text: str) -> None:

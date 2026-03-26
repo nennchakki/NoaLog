@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Callable
 
-from PySide6.QtCore import QObject, Signal, Slot, QTimer
+from PySide6.QtCore import QObject, Signal, Slot, QTimer, QThread
 
 from models import Profile, LogEntry, Rect, Hotkey, LogType
 from config import Config, HEADER_PARSE
@@ -25,6 +25,65 @@ logger = logging.getLogger(__name__)
 class AppControllerError(Exception):
     """AppController関連のエラー。"""
     pass
+
+
+class CaptureWorker(QThread):
+    """
+    キャプチャ・OCR処理を別スレッドで実行するワーカー。
+
+    メインスレッドをブロックせずにOCR処理を行い、
+    UIアニメーション（ヘイロー回転など）を維持する。
+    """
+
+    # シグナル
+    finished = Signal(object, object)  # header_result, body_result
+    error = Signal(str)  # エラーメッセージ
+
+    def __init__(
+        self,
+        screen_capture,
+        ocr_engine,
+        header_rect: Optional[Rect],
+        body_rect: Optional[Rect],
+        parent: Optional[QObject] = None
+    ):
+        super().__init__(parent)
+        self._screen_capture = screen_capture
+        self._ocr_engine = ocr_engine
+        self._header_rect = header_rect
+        self._body_rect = body_rect
+
+    def run(self):
+        """別スレッドでキャプチャ・OCR処理を実行。"""
+        try:
+            header_image = None
+            body_image = None
+
+            # 画面キャプチャ
+            if self._screen_capture:
+                if self._header_rect:
+                    header_image = self._screen_capture.capture_region(self._header_rect)
+                if self._body_rect:
+                    body_image = self._screen_capture.capture_region(self._body_rect)
+
+            # OCR実行
+            header_result = OCRResult(text="", confidence=0.0)
+            body_result = OCRResult(text="", confidence=0.0)
+
+            if self._ocr_engine:
+                if header_image is not None:
+                    header_result = self._ocr_engine.recognize_header(header_image)
+                if body_image is not None:
+                    body_result = self._ocr_engine.recognize_body(body_image)
+
+            self.finished.emit(header_result, body_result)
+
+        except ScreenCaptureError as e:
+            self.error.emit(f"Screen capture failed: {e}")
+        except OCREngineError as e:
+            self.error.emit(f"OCR failed: {e}")
+        except Exception as e:
+            self.error.emit(f"Unexpected error: {e}")
 
 
 class AppController(QObject):
@@ -55,7 +114,9 @@ class AppController(QObject):
     ocr_engine_ready = Signal(str)  # エンジン種別
     profile_changed = Signal(Profile)
     region_selection_started = Signal()
-    region_selection_completed = Signal(object, object)  # header_rect, body_rect
+    region_selection_completed = Signal(object, object, object)  # header_rect, body_rect, narrator_rect
+    narrator_capture_started = Signal()
+    narrator_capture_completed = Signal(LogEntry)  # narrator用LogEntry
 
     def __init__(self, config: Config, parent: Optional[QObject] = None):
         """
@@ -84,6 +145,10 @@ class AppController(QObject):
         self._capture_overlay = None
         self._region_selection_hotkey_id: Optional[str] = None
         self._capture_hotkey_id: Optional[str] = None
+        self._narrator_capture_hotkey_id: Optional[str] = None
+
+        # 非同期キャプチャ用ワーカー
+        self._capture_worker: Optional[CaptureWorker] = None
 
         # 初期化フラグ
         self._initialized = False
@@ -183,6 +248,11 @@ class AppController(QObject):
         self.capture_failed.connect(lambda msg: window.set_status(f"エラー: {msg}"))
         self.ocr_engine_ready.connect(window.set_ocr_status)
 
+        # HaloIndicatorの状態制御を接続
+        self.capture_started.connect(window.show_recording)
+        self.capture_completed.connect(lambda _: window.show_success())
+        self.capture_failed.connect(lambda _: window.show_failed())
+
         logger.info("MainWindow connected to AppController")
 
     def set_profiles(self, profiles: List[Profile]) -> None:
@@ -275,25 +345,20 @@ class AppController(QObject):
                 self.set_current_profile(profile)
                 break
 
-    def execute_capture(self) -> Optional[LogEntry]:
+    def execute_capture(self) -> None:
         """
-        キャプチャフローを実行。
+        キャプチャフローを実行（非同期）。
 
         フロー:
             1. プロファイル確認
             2. 領域情報取得
-            3. 画面キャプチャ
-            4. OCR実行（ヘッダー、ボディ）
-            5. LogEntry作成
-            6. 通知・保存
-
-        Returns:
-            Optional[LogEntry]: 作成されたLogEntry。失敗時はNone
+            3. CaptureWorkerを起動（別スレッドでキャプチャ・OCR実行）
+            4. 完了時にコールバックでLogEntry作成・通知
         """
         # 二重実行防止
         if self._is_capturing:
             logger.warning("Capture already in progress")
-            return None
+            return
 
         self._is_capturing = True
         self.capture_started.emit()
@@ -316,44 +381,55 @@ class AppController(QObject):
                     "Please configure header_rect or body_rect."
                 )
 
-            # 3. 画面キャプチャ
-            header_image = None
-            body_image = None
-
-            if self._screen_capture:
-                if header_rect:
-                    header_image = self._capture_region(header_rect, "header")
-                if body_rect:
-                    body_image = self._capture_region(body_rect, "body")
-            else:
+            # 3. ScreenCapture確認
+            if not self._screen_capture:
                 raise AppControllerError("ScreenCapture not initialized")
 
-            # 4. OCR実行
-            header_result = OCRResult(text="", confidence=0.0)
-            body_result = OCRResult(text="", confidence=0.0)
+            # 4. CaptureWorkerを起動（別スレッドで実行）
+            self._capture_worker = CaptureWorker(
+                screen_capture=self._screen_capture,
+                ocr_engine=self._ocr_engine,
+                header_rect=header_rect,
+                body_rect=body_rect,
+                parent=self
+            )
+            self._capture_worker.finished.connect(self._on_capture_worker_finished)
+            self._capture_worker.error.connect(self._on_capture_worker_error)
+            self._capture_worker.start()
 
-            if self._ocr_engine:
-                if header_image is not None:
-                    header_result = self._ocr_engine.recognize_header(header_image)
-                    logger.debug(f"Header OCR: {header_result.text[:50]}...")
+            logger.debug("CaptureWorker started")
 
-                if body_image is not None:
-                    body_result = self._ocr_engine.recognize_body(body_image)
-                    logger.debug(f"Body OCR: {body_result.text[:50]}...")
-            else:
-                logger.warning("OCR engine not available, creating empty entry")
+        except AppControllerError as e:
+            error_msg = str(e)
+            logger.error(error_msg)
+            self.capture_failed.emit(error_msg)
+            self._is_capturing = False
 
-            # 5. LogEntry作成
+        except Exception as e:
+            error_msg = f"Unexpected error: {e}"
+            logger.error(error_msg, exc_info=True)
+            self.capture_failed.emit(error_msg)
+            self._is_capturing = False
+
+    @Slot(object, object)
+    def _on_capture_worker_finished(self, header_result: OCRResult, body_result: OCRResult) -> None:
+        """CaptureWorker完了時の処理。"""
+        try:
+            profile = self._current_profile
+            if not profile:
+                raise AppControllerError("Profile lost during capture")
+
+            # LogEntry作成
             entry = self._create_log_entry(
                 profile=profile,
                 header_result=header_result,
                 body_result=body_result,
             )
 
-            # 6. ストレージに保存（将来実装）
+            # ストレージに保存
             self._save_log_entry(entry)
 
-            # 7. 通知
+            # 通知
             self._log_entries.append(entry)
             self.capture_completed.emit(entry)
 
@@ -361,34 +437,29 @@ class AppController(QObject):
                 self._main_window.set_status("キャプチャ完了")
 
             logger.info(f"Capture completed: {entry.id}")
-            return entry
-
-        except ScreenCaptureError as e:
-            error_msg = f"Screen capture failed: {e}"
-            logger.error(error_msg)
-            self.capture_failed.emit(error_msg)
-            return None
-
-        except OCREngineError as e:
-            error_msg = f"OCR failed: {e}"
-            logger.error(error_msg)
-            self.capture_failed.emit(error_msg)
-            return None
-
-        except AppControllerError as e:
-            error_msg = str(e)
-            logger.error(error_msg)
-            self.capture_failed.emit(error_msg)
-            return None
 
         except Exception as e:
-            error_msg = f"Unexpected error: {e}"
+            error_msg = f"Error processing capture result: {e}"
             logger.error(error_msg, exc_info=True)
             self.capture_failed.emit(error_msg)
-            return None
 
         finally:
             self._is_capturing = False
+            self._cleanup_capture_worker()
+
+    @Slot(str)
+    def _on_capture_worker_error(self, error_msg: str) -> None:
+        """CaptureWorkerエラー時の処理。"""
+        logger.error(error_msg)
+        self.capture_failed.emit(error_msg)
+        self._is_capturing = False
+        self._cleanup_capture_worker()
+
+    def _cleanup_capture_worker(self) -> None:
+        """CaptureWorkerをクリーンアップ。"""
+        if hasattr(self, '_capture_worker') and self._capture_worker:
+            self._capture_worker.deleteLater()
+            self._capture_worker = None
 
     def _capture_region(self, rect: Rect, region_name: str):
         """
@@ -593,6 +664,14 @@ class AppController(QObject):
         )
         logger.info(f"Capture hotkey registered: {capture_hotkey}")
 
+        # 語り部キャプチャホットキー
+        narrator_keys = hotkey_config.get("narrator_capture", ["alt", "n"])
+        narrator_hotkey = Hotkey(keys=narrator_keys)
+        self._narrator_capture_hotkey_id = self._hotkey_manager.register_hotkey(
+            narrator_hotkey, self._on_narrator_capture_hotkey
+        )
+        logger.info(f"Narrator capture hotkey registered: {narrator_hotkey}")
+
     def _on_capture_hotkey(self) -> None:
         """キャプチャホットキーがトリガーされた時の処理。"""
         logger.debug("Capture hotkey triggered")
@@ -602,11 +681,105 @@ class AppController(QObject):
         except Exception as e:
             logger.error(f"Error invoking trigger_capture: {e}")
 
+    def _on_narrator_capture_hotkey(self) -> None:
+        """語り部キャプチャホットキーがトリガーされた時の処理。"""
+        logger.debug("Narrator capture hotkey triggered")
+        try:
+            from PySide6.QtCore import QMetaObject, Qt
+            QMetaObject.invokeMethod(self, "trigger_narrator_capture", Qt.ConnectionType.QueuedConnection)
+        except Exception as e:
+            logger.error(f"Error invoking trigger_narrator_capture: {e}")
+
     @Slot()
     def trigger_capture(self) -> None:
         """ホットキーからキャプチャを実行（Qtメインスレッドで実行）。"""
         logger.info("trigger_capture called")
         self.execute_capture()
+
+    @Slot()
+    def trigger_narrator_capture(self) -> None:
+        """ホットキーから語り部キャプチャを実行（Qtメインスレッドで実行）。"""
+        logger.info("trigger_narrator_capture called")
+        self.execute_narrator_capture()
+
+    def execute_narrator_capture(self) -> None:
+        """
+        語り部キャプチャフローを実行。
+
+        narrator_rect領域のみをOCRし、narrator_labelを話者名として使用。
+        """
+        # 二重実行防止
+        if self._is_capturing:
+            logger.warning("Capture already in progress")
+            return
+
+        self._is_capturing = True
+        self.narrator_capture_started.emit()
+
+        try:
+            # 1. プロファイル確認
+            if not self._current_profile:
+                raise AppControllerError("No profile selected")
+
+            profile = self._current_profile
+            logger.info(f"Starting narrator capture with profile: {profile.name}")
+
+            # 2. narrator領域情報取得
+            narrator_rect = profile.narrator_rect
+
+            if not narrator_rect:
+                raise AppControllerError(
+                    "No narrator capture region defined in profile. "
+                    "Please configure narrator_rect first."
+                )
+
+            # 3. ScreenCapture確認
+            if not self._screen_capture:
+                raise AppControllerError("ScreenCapture not initialized")
+
+            # 4. 直接キャプチャ・OCR実行（narrator領域のみ）
+            narrator_image = self._screen_capture.capture_region(narrator_rect)
+
+            narrator_result = OCRResult(text="", confidence=0.0)
+            if self._ocr_engine and narrator_image is not None:
+                narrator_result = self._ocr_engine.recognize_body(narrator_image)
+
+            # 5. LogEntry作成（narrator_labelを話者名として使用）
+            entry = LogEntry(
+                profile_id=profile.id,
+                log_type=LogType.NARRATION,
+                raw_header=profile.narrator_label,
+                raw_body=narrator_result.text,
+                speaker_name=profile.narrator_label,
+                speaker_org="",
+                body_text=narrator_result.text.strip(),
+            )
+
+            # 6. ストレージに保存
+            self._save_log_entry(entry)
+
+            # 7. 通知
+            self._log_entries.append(entry)
+            self.narrator_capture_completed.emit(entry)
+            self.capture_completed.emit(entry)  # 通常のcapture_completedも発火
+
+            if self._main_window:
+                self._main_window.set_status(f"語り部キャプチャ完了: {profile.narrator_label}")
+
+            logger.info(f"Narrator capture completed: {entry.id}")
+
+        except AppControllerError as e:
+            error_msg = str(e)
+            logger.error(error_msg)
+            self.capture_failed.emit(error_msg)
+
+        except Exception as e:
+            error_msg = f"Unexpected error: {e}"
+            logger.error(error_msg, exc_info=True)
+            self.capture_failed.emit(error_msg)
+
+        finally:
+            self._is_capturing = False
 
     def quick_capture(self) -> Optional[LogEntry]:
         """
@@ -688,6 +861,31 @@ class AppController(QObject):
 
         return success
 
+    def update_narrator_capture_hotkey(self, new_keys: List[str]) -> bool:
+        """
+        語り部キャプチャホットキーを更新。
+
+        Args:
+            new_keys: 新しいキーの組み合わせ（例: ["alt", "n"]）
+
+        Returns:
+            bool: 更新成功時True
+        """
+        if not self._hotkey_manager or not self._narrator_capture_hotkey_id:
+            return False
+
+        new_hotkey = Hotkey(keys=new_keys)
+        success = self._hotkey_manager.update_hotkey(self._narrator_capture_hotkey_id, new_hotkey)
+
+        if success:
+            # 設定に保存
+            config_data = self.config.load_config()
+            config_data.setdefault("hotkey", {})["narrator_capture"] = new_keys
+            self.config.save_config(config_data)
+            logger.info(f"Narrator capture hotkey updated: {new_hotkey}")
+
+        return success
+
     @Slot(dict)
     def _on_hotkey_settings_changed(self, settings: dict) -> None:
         """ホットキー設定変更時の処理。"""
@@ -700,6 +898,10 @@ class AppController(QObject):
         # 範囲指定ホットキー更新
         if "region_selection" in settings:
             self.update_region_selection_hotkey(settings["region_selection"])
+
+        # 語り部キャプチャホットキー更新
+        if "narrator_capture" in settings:
+            self.update_narrator_capture_hotkey(settings["narrator_capture"])
 
         if self._main_window:
             self._main_window.set_status("ホットキー設定を更新しました")
@@ -745,10 +947,10 @@ class AppController(QObject):
         except Exception as e:
             logger.error(f"Error in start_region_selection: {e}", exc_info=True)
 
-    @Slot(object, object)
-    def _on_regions_selected(self, header_rect: Rect, body_rect: Rect) -> None:
+    @Slot(object, object, object)
+    def _on_regions_selected(self, header_rect: Rect, body_rect: Rect, narrator_rect: Optional[Rect]) -> None:
         """範囲選択完了時の処理。"""
-        logger.info(f"Regions selected - Header: {header_rect}, Body: {body_rect}")
+        logger.info(f"Regions selected - Header: {header_rect}, Body: {body_rect}, Narrator: {narrator_rect}")
 
         # Auto-create profile if none exists
         if not self._current_profile:
@@ -763,18 +965,26 @@ class AppController(QObject):
         # Update current profile
         self._current_profile.header_rect = header_rect
         self._current_profile.body_rect = body_rect
+        self._current_profile.narrator_rect = narrator_rect
         self._current_profile.updated_at = datetime.now().isoformat()
 
         # Save profile
         self._save_profile(self._current_profile)
 
-        self.region_selection_completed.emit(header_rect, body_rect)
+        self.region_selection_completed.emit(header_rect, body_rect, narrator_rect)
+
+        # Build status message
+        status_parts = [
+            f"Header: ({header_rect.x}, {header_rect.y}, {header_rect.width}x{header_rect.height})",
+            f"Body: ({body_rect.x}, {body_rect.y}, {body_rect.width}x{body_rect.height})",
+        ]
+        if narrator_rect:
+            status_parts.append(f"Narrator: ({narrator_rect.x}, {narrator_rect.y}, {narrator_rect.width}x{narrator_rect.height})")
+        else:
+            status_parts.append("Narrator: (スキップ)")
 
         if self._main_window:
-            self._main_window.set_status(
-                f"範囲指定完了 - Header: ({header_rect.x}, {header_rect.y}, {header_rect.width}x{header_rect.height}), "
-                f"Body: ({body_rect.x}, {body_rect.y}, {body_rect.width}x{body_rect.height})"
-            )
+            self._main_window.set_status(f"範囲指定完了 - {', '.join(status_parts)}")
 
         self._cleanup_overlay()
 

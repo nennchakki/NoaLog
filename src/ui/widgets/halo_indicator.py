@@ -1,8 +1,8 @@
 """
 Halo Indicator Widget
 
-A circular ring (halo) indicator that visually represents recording state.
-Supports multiple states: IDLE, RECORDING, SUCCESS, FAILED, DEBOUNCE.
+A dual-circle indicator that visually represents processing state.
+Inner solid circle + outer ring with accent color segment.
 """
 
 from enum import Enum
@@ -10,7 +10,7 @@ from typing import Optional
 
 from PySide6.QtCore import (
     Qt, Signal, Property, QTimer,
-    QPropertyAnimation, QEasingCurve, QPointF
+    QPropertyAnimation, QEasingCurve, QPointF, QRectF
 )
 from PySide6.QtGui import QPainter, QPen, QColor, QBrush
 from PySide6.QtWidgets import QWidget
@@ -21,29 +21,32 @@ from ..styles.tokens import COLORS, LAYOUT, ANIMATION
 class HaloState(Enum):
     """Halo indicator states."""
     IDLE = "idle"
-    RECORDING = "recording"
+    PROCESSING = "processing"
     SUCCESS = "success"
     FAILED = "failed"
-    DEBOUNCE = "debounce"
 
 
 class HaloIndicator(QWidget):
     """
-    A circular halo indicator widget for displaying recording state.
+    A dual-circle indicator widget for displaying processing state.
 
-    The halo displays different visual states:
-    - IDLE: Gray static ring
-    - RECORDING: Cyan ring with slow rotation animation
-    - SUCCESS: Cyan pulse (expand -> contract) then return to IDLE
-    - FAILED: Gray shrink animation then return to IDLE
-    - DEBOUNCE: Light gray ring with X mark in center
+    Design:
+    - Inner circle: Small solid circle (accent color)
+    - Outer ring: Thick ring with 90° accent segment + 270° white segment
+    - Processing: Outer ring rotates
+
+    States:
+    - IDLE: Static display (accent at top-left quadrant)
+    - PROCESSING: Outer ring rotates continuously
+    - SUCCESS: Brief pulse animation then return to IDLE
+    - FAILED: Brief fade animation then return to IDLE
 
     Signals:
         state_changed(str): Emitted when state changes, with state name.
 
     Usage:
         halo = HaloIndicator()
-        halo.start_recording()
+        halo.start_processing()
         # ... later ...
         halo.show_success()
     """
@@ -54,9 +57,14 @@ class HaloIndicator(QWidget):
     # Default sizes
     DEFAULT_SIZE = LAYOUT.get("halo_size", 32)
 
-    # Ring properties
-    RING_WIDTH_IDLE = 2
-    RING_WIDTH_ACTIVE = 3
+    # Design constants
+    OUTER_RING_WIDTH = 4          # White outer ring thickness
+    INNER_RING_WIDTH = 2          # Blue inner ring thickness
+    CENTER_RING_WIDTH = 2         # Center ring thickness
+    CENTER_RING_RATIO = 0.35      # Center ring radius
+    OUTER_RING_RATIO = 0.92       # White outer ring radius (larger)
+    INNER_RING_RATIO = 0.78       # Blue inner ring radius
+    SEGMENT_SPAN_DEGREES = 90     # Blue segment span
 
     def __init__(self, parent: Optional[QWidget] = None):
         """
@@ -76,11 +84,9 @@ class HaloIndicator(QWidget):
         self._opacity = 1.0
 
         # Colors from tokens
-        self._color_idle = QColor(COLORS.get("halo_idle", "#C8D2E0"))
-        self._color_active = QColor(COLORS.get("halo_active", "#63C6FF"))
-        self._color_success = QColor(COLORS.get("halo_success", "#63C6FF"))
-        self._color_failed = QColor(COLORS.get("halo_failed", "#8A95A8"))
-        self._color_debounce = QColor(COLORS.get("halo_debounce", "#E5EAF2"))
+        self._color_accent = QColor(COLORS.get("accent", "#63C6FF"))
+        self._color_accent_light = QColor(COLORS.get("accent_light", "#A7E4FF"))
+        self._color_white = QColor("#FFFFFF")
 
         # Timers
         self._rotation_timer = QTimer(self)
@@ -99,7 +105,10 @@ class HaloIndicator(QWidget):
 
     def _setup_widget(self) -> None:
         """Configure widget properties."""
-        size = self.DEFAULT_SIZE
+        # Add margin to widget size to prevent clipping of thick pen strokes
+        # Account for: segment overhang + scale animation (1.2x) + safety buffer
+        margin = 12
+        size = self.DEFAULT_SIZE + margin
         self.setFixedSize(size, size)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -146,45 +155,53 @@ class HaloIndicator(QWidget):
         Set the indicator state.
 
         Args:
-            state: State name ('idle', 'recording', 'success', 'failed', 'debounce').
+            state: State name ('idle', 'processing', 'success', 'failed').
         """
+        # Handle legacy state names for compatibility
+        state_lower = state.lower()
+        if state_lower == "recording":
+            state_lower = "processing"
+
         try:
-            new_state = HaloState(state.lower())
+            new_state = HaloState(state_lower)
         except ValueError:
             return
 
         if new_state == self._state:
             return
 
-        old_state = self._state
         self._state = new_state
 
         # Stop any running animations
         self._stop_animations()
 
         # Start appropriate animation for new state
-        if new_state == HaloState.RECORDING:
+        if new_state == HaloState.PROCESSING:
             self._start_rotation()
         elif new_state == HaloState.SUCCESS:
             self._start_success_animation()
         elif new_state == HaloState.FAILED:
             self._start_failed_animation()
         else:
-            # IDLE or DEBOUNCE - reset properties
+            # IDLE - reset properties
             self._reset_properties()
 
         self.state_changed.emit(new_state.value)
         self.update()
 
+    def start_processing(self) -> None:
+        """Transition to PROCESSING state."""
+        self.set_state(HaloState.PROCESSING.value)
+
     def start_recording(self) -> None:
-        """Transition to RECORDING state."""
-        self.set_state(HaloState.RECORDING.value)
+        """Alias for start_processing() for backward compatibility."""
+        self.start_processing()
 
     def show_success(self) -> None:
         """
         Show SUCCESS animation then return to IDLE.
 
-        Displays a pulse animation (expand -> contract) in cyan.
+        Displays a pulse animation.
         """
         self.set_state(HaloState.SUCCESS.value)
 
@@ -192,19 +209,19 @@ class HaloIndicator(QWidget):
         """
         Show FAILED animation then return to IDLE.
 
-        Displays a shrink animation in gray.
+        Displays a fade animation.
         """
         self.set_state(HaloState.FAILED.value)
 
     def set_debounce(self, active: bool) -> None:
         """
-        Set debounce state ON/OFF.
+        Set debounce state ON/OFF (legacy compatibility).
 
         Args:
-            active: True to show debounce state, False to return to IDLE.
+            active: True to show processing state, False to return to IDLE.
         """
         if active:
-            self.set_state(HaloState.DEBOUNCE.value)
+            self.set_state(HaloState.PROCESSING.value)
         else:
             self.set_state(HaloState.IDLE.value)
 
@@ -234,7 +251,7 @@ class HaloIndicator(QWidget):
         self.update()
 
     def _start_rotation(self) -> None:
-        """Start rotation animation for RECORDING state."""
+        """Start rotation animation for PROCESSING state."""
         # Calculate rotation step for smooth animation
         # 360 degrees over rotation_duration ms, update every 16ms (~60fps)
         update_interval = 16
@@ -254,54 +271,38 @@ class HaloIndicator(QWidget):
         self._scale = 1.0
         self._opacity = 1.0
 
-        # Create scale animation: 1.0 -> 1.3 -> 0.0
+        # Create scale animation: 1.0 -> 1.2 -> 1.0
         self._scale_animation = QPropertyAnimation(self, b"scale")
         self._scale_animation.setDuration(self._pulse_duration)
         self._scale_animation.setKeyValueAt(0.0, 1.0)
-        self._scale_animation.setKeyValueAt(0.4, 1.3)  # Expand
-        self._scale_animation.setKeyValueAt(1.0, 0.0)  # Contract to nothing
+        self._scale_animation.setKeyValueAt(0.5, 1.2)
+        self._scale_animation.setKeyValueAt(1.0, 1.0)
         self._scale_animation.setEasingCurve(QEasingCurve.Type.OutQuad)
-
-        # Create opacity animation: 1.0 -> 1.0 -> 0.0
-        self._opacity_animation = QPropertyAnimation(self, b"opacity")
-        self._opacity_animation.setDuration(self._pulse_duration)
-        self._opacity_animation.setKeyValueAt(0.0, 1.0)
-        self._opacity_animation.setKeyValueAt(0.5, 1.0)
-        self._opacity_animation.setKeyValueAt(1.0, 0.0)
-        self._opacity_animation.setEasingCurve(QEasingCurve.Type.OutQuad)
 
         # Connect finished signal to return to IDLE
         self._scale_animation.finished.connect(self._on_animation_finished)
 
-        # Start animations
+        # Start animation
         self._scale_animation.start()
-        self._opacity_animation.start()
 
     def _start_failed_animation(self) -> None:
-        """Start failed shrink animation."""
+        """Start failed fade animation."""
         # Reset
         self._scale = 1.0
         self._opacity = 1.0
 
-        # Create scale animation: 1.0 -> 0.0 (shrink)
-        self._scale_animation = QPropertyAnimation(self, b"scale")
-        self._scale_animation.setDuration(int(self._pulse_duration * 0.8))
-        self._scale_animation.setStartValue(1.0)
-        self._scale_animation.setEndValue(0.0)
-        self._scale_animation.setEasingCurve(QEasingCurve.Type.InQuad)
-
-        # Create opacity animation
+        # Create opacity animation: 1.0 -> 0.3 -> 1.0
         self._opacity_animation = QPropertyAnimation(self, b"opacity")
         self._opacity_animation.setDuration(int(self._pulse_duration * 0.8))
-        self._opacity_animation.setStartValue(1.0)
-        self._opacity_animation.setEndValue(0.0)
-        self._opacity_animation.setEasingCurve(QEasingCurve.Type.InQuad)
+        self._opacity_animation.setKeyValueAt(0.0, 1.0)
+        self._opacity_animation.setKeyValueAt(0.5, 0.3)
+        self._opacity_animation.setKeyValueAt(1.0, 1.0)
+        self._opacity_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
 
         # Connect finished signal to return to IDLE
-        self._scale_animation.finished.connect(self._on_animation_finished)
+        self._opacity_animation.finished.connect(self._on_animation_finished)
 
-        # Start animations
-        self._scale_animation.start()
+        # Start animation
         self._opacity_animation.start()
 
     def _on_animation_finished(self) -> None:
@@ -323,157 +324,139 @@ class HaloIndicator(QWidget):
         # Apply opacity
         painter.setOpacity(self._opacity)
 
-        # Calculate center and size
+        # Calculate center and sizes
         center = QPointF(self.width() / 2.0, self.height() / 2.0)
-        base_radius = min(self.width(), self.height()) / 2.0 - 2
+        # Use the original DEFAULT_SIZE as base for drawing, regardless of widget size
+        base_radius = self.DEFAULT_SIZE / 2.0
 
         # Apply scale
-        radius = base_radius * self._scale
+        center_ring_radius = base_radius * self.CENTER_RING_RATIO * self._scale
+        outer_ring_radius = base_radius * self.OUTER_RING_RATIO * self._scale
+        inner_ring_radius = base_radius * self.INNER_RING_RATIO * self._scale
 
-        if radius <= 0:
+        if center_ring_radius <= 0 or outer_ring_radius <= 0:
             painter.end()
             return
 
-        # Choose color and width based on state
-        if self._state == HaloState.IDLE:
-            color = self._color_idle
-            ring_width = self.RING_WIDTH_IDLE
-            self._draw_ring(painter, center, radius, color, ring_width)
+        # Draw white outer ring (complete circle - the "mechanical" ring)
+        self._draw_white_outer_ring(painter, center, outer_ring_radius)
 
-        elif self._state == HaloState.RECORDING:
-            color = self._color_active
-            ring_width = self.RING_WIDTH_ACTIVE
-            self._draw_rotating_ring(painter, center, radius, color, ring_width)
+        # Draw light blue inner ring (complete circle - inside the outer ring)
+        self._draw_blue_inner_ring(painter, center, inner_ring_radius)
 
-        elif self._state == HaloState.SUCCESS:
-            color = self._color_success
-            ring_width = self.RING_WIDTH_ACTIVE
-            self._draw_ring(painter, center, radius, color, ring_width)
+        # Draw blue segment at top-left (the "meshing" part, 90°-180°)
+        self._draw_blue_segment(painter, center, outer_ring_radius, inner_ring_radius)
 
-        elif self._state == HaloState.FAILED:
-            color = self._color_failed
-            ring_width = self.RING_WIDTH_ACTIVE
-            self._draw_ring(painter, center, radius, color, ring_width)
-
-        elif self._state == HaloState.DEBOUNCE:
-            color = self._color_debounce
-            ring_width = self.RING_WIDTH_IDLE
-            self._draw_ring(painter, center, radius, color, ring_width)
-            self._draw_x_mark(painter, center, radius * 0.5)
+        # Draw center ring (not filled)
+        self._draw_center_ring(painter, center, center_ring_radius)
 
         painter.end()
 
-    def _draw_ring(
+    def _draw_center_ring(
         self,
         painter: QPainter,
         center: QPointF,
-        radius: float,
-        color: QColor,
-        width: int
+        radius: float
     ) -> None:
-        """Draw a simple ring."""
-        pen = QPen(color)
-        pen.setWidth(width)
+        """Draw the center ring (not filled)."""
+        pen = QPen(self._color_accent)
+        pen.setWidth(self.CENTER_RING_WIDTH)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
-
         painter.drawEllipse(center, radius, radius)
 
-    def _draw_rotating_ring(
+    def _draw_white_outer_ring(
         self,
         painter: QPainter,
         center: QPointF,
-        radius: float,
-        color: QColor,
-        width: int
+        radius: float
     ) -> None:
-        """
-        Draw a rotating ring with gradient effect.
-
-        Creates a visual effect where part of the ring appears brighter,
-        giving the impression of rotation.
-        """
-        # Save painter state
-        painter.save()
-
-        # Translate to center and rotate
-        painter.translate(center)
-        painter.rotate(self._rotation_angle)
-
-        # Draw the base ring in a lighter shade
-        base_color = QColor(color)
-        base_color.setAlpha(100)
-        pen = QPen(base_color)
-        pen.setWidth(width)
+        """Draw the white outer ring (complete circle)."""
+        pen = QPen(self._color_white)
+        pen.setWidth(self.OUTER_RING_WIDTH)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawEllipse(QPointF(0, 0), radius, radius)
+        painter.drawEllipse(center, radius, radius)
 
-        # Draw bright arc segment (the "rotating" part)
-        pen = QPen(color)
-        pen.setWidth(width)
+    def _draw_blue_inner_ring(
+        self,
+        painter: QPainter,
+        center: QPointF,
+        radius: float
+    ) -> None:
+        """Draw the light blue inner ring (complete circle)."""
+        pen = QPen(self._color_accent_light)
+        pen.setWidth(self.INNER_RING_WIDTH)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(center, radius, radius)
 
-        # Draw arc - Qt uses 1/16th of a degree
-        # Draw a 90-degree bright arc
-        rect_size = radius * 2
-        arc_rect = QPointF(-radius, -radius)
+    def _draw_blue_segment(
+        self,
+        painter: QPainter,
+        center: QPointF,
+        outer_radius: float,
+        inner_radius: float
+    ) -> None:
+        """
+        Draw the blue segment that "meshes" with the rings.
 
-        from PySide6.QtCore import QRectF
-        rect = QRectF(-radius, -radius, rect_size, rect_size)
+        The segment spans from the outer ring to the inner ring,
+        positioned at top-left (90°-180° in coordinate plane) and rotates during processing.
 
-        # Start at 0 degrees, span 90 degrees (in 1/16th degree units)
-        start_angle = 0 * 16
+        In Qt coordinate system:
+        - 0 degrees is at 3 o'clock (right side)
+        - 90 degrees is at 12 o'clock (top)
+        - 180 degrees is at 9 o'clock (left)
+        - Positive angles go counter-clockwise
+
+        So 90°-180° means from top to left.
+        """
+        painter.save()
+
+        # Translate to center for rotation
+        painter.translate(center)
+
+        # Apply rotation for processing state
+        if self._state == HaloState.PROCESSING:
+            painter.rotate(self._rotation_angle)
+
+        # The segment is drawn as a thick arc between inner and outer ring
+        segment_radius = (outer_radius + inner_radius) / 2.0
+        segment_width = outer_radius - inner_radius + self.OUTER_RING_WIDTH
+
+        pen = QPen(self._color_accent)
+        pen.setWidth(int(segment_width))
+        pen.setCapStyle(Qt.PenCapStyle.FlatCap)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+
+        rect = QRectF(-segment_radius, -segment_radius,
+                      segment_radius * 2, segment_radius * 2)
+
+        # Draw arc from 90° (top) to 180° (left)
+        # Start at 90°, span 90° counter-clockwise
+        start_angle = 90 * 16
         span_angle = 90 * 16
         painter.drawArc(rect, start_angle, span_angle)
 
-        # Restore painter state
         painter.restore()
-
-    def _draw_x_mark(
-        self,
-        painter: QPainter,
-        center: QPointF,
-        size: float
-    ) -> None:
-        """Draw an X mark in the center for debounce state."""
-        # Use a darker shade of debounce color for the X
-        x_color = QColor(self._color_failed)
-        x_color.setAlpha(180)
-
-        pen = QPen(x_color)
-        pen.setWidth(2)
-        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-        painter.setPen(pen)
-
-        # Calculate X endpoints
-        half_size = size / 2.0
-
-        # Draw X (two diagonal lines)
-        painter.drawLine(
-            QPointF(center.x() - half_size, center.y() - half_size),
-            QPointF(center.x() + half_size, center.y() + half_size)
-        )
-        painter.drawLine(
-            QPointF(center.x() + half_size, center.y() - half_size),
-            QPointF(center.x() - half_size, center.y() + half_size)
-        )
 
 
 if __name__ == "__main__":
     # Demo / test code
     import sys
-    from PySide6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QPushButton
+    from PySide6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
 
     app = QApplication(sys.argv)
 
     # Create demo window
     window = QWidget()
     window.setWindowTitle("Halo Indicator Demo")
-    window.setStyleSheet("background-color: #F6F1E6;")
+    window.setStyleSheet("background-color: #0B1B2B;")  # Dark background to see white ring
 
     layout = QVBoxLayout(window)
 
@@ -487,8 +470,8 @@ if __name__ == "__main__":
     layout.addWidget(halo_container)
 
     # Status label
-    from PySide6.QtWidgets import QLabel
     status_label = QLabel("State: idle")
+    status_label.setStyleSheet("color: white;")
     status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     layout.addWidget(status_label)
 
@@ -504,9 +487,9 @@ if __name__ == "__main__":
     btn_idle.clicked.connect(lambda: halo.set_state("idle"))
     btn_layout.addWidget(btn_idle)
 
-    btn_recording = QPushButton("RECORDING")
-    btn_recording.clicked.connect(lambda: halo.start_recording())
-    btn_layout.addWidget(btn_recording)
+    btn_processing = QPushButton("PROCESSING")
+    btn_processing.clicked.connect(lambda: halo.start_processing())
+    btn_layout.addWidget(btn_processing)
 
     btn_success = QPushButton("SUCCESS")
     btn_success.clicked.connect(lambda: halo.show_success())
@@ -515,10 +498,6 @@ if __name__ == "__main__":
     btn_failed = QPushButton("FAILED")
     btn_failed.clicked.connect(lambda: halo.show_failed())
     btn_layout.addWidget(btn_failed)
-
-    btn_debounce = QPushButton("DEBOUNCE")
-    btn_debounce.clicked.connect(lambda: halo.set_debounce(True))
-    btn_layout.addWidget(btn_debounce)
 
     layout.addLayout(btn_layout)
 

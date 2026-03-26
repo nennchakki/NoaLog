@@ -22,14 +22,16 @@ class RegionType(Enum):
     """Type of capture region being selected."""
     HEADER = "header"
     BODY = "body"
+    NARRATOR = "narrator"
 
 
 class SelectionStage(Enum):
-    """Selection stage in the two-stage capture overlay."""
+    """Selection stage in the three-stage capture overlay."""
     IDLE = auto()      # Not started
     HEADER = auto()    # Selecting header region
     BODY = auto()      # Selecting body region
-    COMPLETE = auto()  # Both regions selected
+    NARRATOR = auto()  # Selecting narrator region
+    COMPLETE = auto()  # All regions selected
 
 
 class CaptureOverlay(QWidget):
@@ -54,7 +56,7 @@ class CaptureOverlay(QWidget):
     # Signals
     region_selected = Signal(int, int, int, int, str)  # x, y, width, height, region_type
     selection_cancelled = Signal()
-    regions_selected = Signal(object, object)  # header_rect, body_rect (as Rect objects)
+    regions_selected = Signal(object, object, object)  # header_rect, body_rect, narrator_rect (as Rect objects, narrator can be None)
 
     # Theme colors (matching NoaLog theme)
     OVERLAY_COLOR = QColor(26, 39, 68, 77)  # #1a2744 with 30% opacity
@@ -86,11 +88,12 @@ class CaptureOverlay(QWidget):
         self._current_point: Optional[QPoint] = None
         self._selection_rect: Optional[QRect] = None
 
-        # Two-stage selection mode
-        self._two_stage_mode = False
+        # Three-stage selection mode
+        self._three_stage_mode = False
         self._selection_stage = SelectionStage.IDLE
-        self._header_rect: Optional[QRect] = None  # Stored header selection
-        self._body_rect: Optional[QRect] = None    # Stored body selection
+        self._header_rect: Optional[QRect] = None    # Stored header selection
+        self._body_rect: Optional[QRect] = None      # Stored body selection
+        self._narrator_rect: Optional[QRect] = None  # Stored narrator selection
 
         # Background screenshot for region selection
         self._background_screenshot: Optional[QPixmap] = None
@@ -237,9 +240,12 @@ class CaptureOverlay(QWidget):
         # Draw the semi-transparent overlay on top of screenshot
         painter.fillRect(self.rect(), self.OVERLAY_COLOR)
 
-        # Draw confirmed header rect (if in body selection stage)
-        if self._two_stage_mode and self._selection_stage == SelectionStage.BODY and self._header_rect:
-            self._draw_confirmed_region(painter, self._header_rect, "Header")
+        # Draw confirmed regions
+        if self._three_stage_mode:
+            if self._header_rect and self._selection_stage in (SelectionStage.BODY, SelectionStage.NARRATOR):
+                self._draw_confirmed_region(painter, self._header_rect, "Header (名前)")
+            if self._body_rect and self._selection_stage == SelectionStage.NARRATOR:
+                self._draw_confirmed_region(painter, self._body_rect, "Body (本文)")
 
         # Draw current selection if active
         if self._selection_rect and not self._selection_rect.isNull():
@@ -353,13 +359,15 @@ class CaptureOverlay(QWidget):
     def _draw_instructions(self, painter: QPainter) -> None:
         """Draw instruction text at the top of the overlay."""
         # Determine instruction text based on mode
-        if self._two_stage_mode:
+        if self._three_stage_mode:
             if self._selection_stage == SelectionStage.HEADER:
-                instruction = "Step 1/2: Select HEADER Region (Name/Organization) - Drag to select, Enter to confirm, ESC to cancel"
+                instruction = "ステップ 1/3: 名前領域を選択 - ドラッグで範囲指定、Enterで確定、ESCでキャンセル"
             elif self._selection_stage == SelectionStage.BODY:
-                instruction = "Step 2/2: Select BODY Region (Text Content) - Drag to select, Enter to confirm, ESC to cancel"
+                instruction = "ステップ 2/3: 本文領域を選択 - ドラッグで範囲指定、Enterで確定、ESCでキャンセル"
+            elif self._selection_stage == SelectionStage.NARRATOR:
+                instruction = "ステップ 3/3: 語り部領域を選択 (任意) - ドラッグで範囲指定、Enterで確定、Sでスキップ、ESCでキャンセル"
             else:
-                instruction = "Selection Complete"
+                instruction = "選択完了"
         else:
             # Original single-stage instructions
             region_name = "Header" if self._region_type == RegionType.HEADER else "Body"
@@ -425,8 +433,8 @@ class CaptureOverlay(QWidget):
 
                 # Validate minimum size
                 if rect.width() >= self.MIN_SELECTION_SIZE and rect.height() >= self.MIN_SELECTION_SIZE:
-                    # In two-stage mode, don't close - wait for Enter to confirm
-                    if self._two_stage_mode:
+                    # In three-stage mode, don't close - wait for Enter to confirm
+                    if self._three_stage_mode:
                         # Just update the display, Enter will confirm
                         self.update()
                     else:
@@ -453,7 +461,7 @@ class CaptureOverlay(QWidget):
             self.close()
 
         elif event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
-            if self._two_stage_mode:
+            if self._three_stage_mode:
                 self._confirm_current_stage()
             else:
                 # Single-stage mode: Enter confirms current selection
@@ -469,9 +477,14 @@ class CaptureOverlay(QWidget):
                         )
                         self.close()
 
+        elif event.key() == Qt.Key.Key_S:
+            # Skip narrator stage (only available in narrator selection stage)
+            if self._three_stage_mode and self._selection_stage == SelectionStage.NARRATOR:
+                self._skip_narrator_stage()
+
         elif event.key() == Qt.Key.Key_Tab:
-            # Toggle is disabled in two-stage mode
-            if not self._two_stage_mode:
+            # Toggle is disabled in three-stage mode
+            if not self._three_stage_mode:
                 self._toggle_region_type()
         else:
             super().keyPressEvent(event)
@@ -497,7 +510,8 @@ class CaptureOverlay(QWidget):
         self._background_screenshot = None
         self._header_rect = None
         self._body_rect = None
-        self._two_stage_mode = False
+        self._narrator_rect = None
+        self._three_stage_mode = False
         self._selection_stage = SelectionStage.IDLE
 
     # =========================================================================
@@ -506,17 +520,19 @@ class CaptureOverlay(QWidget):
 
     def start_two_stage_selection(self) -> None:
         """
-        Start the two-stage selection process.
-        Stage 1: Select header region
-        Stage 2: Select body region
+        Start the three-stage selection process.
+        Stage 1: Select header region (名前)
+        Stage 2: Select body region (本文)
+        Stage 3: Select narrator region (語り部) - optional, can be skipped with 'S' key
         """
         # Capture screenshot BEFORE showing overlay so user can see the screen
         self._capture_background_screenshot()
 
-        self._two_stage_mode = True
+        self._three_stage_mode = True
         self._selection_stage = SelectionStage.HEADER
         self._header_rect = None
         self._body_rect = None
+        self._narrator_rect = None
         self._reset_selection()
         self.show()
 
@@ -549,6 +565,9 @@ class CaptureOverlay(QWidget):
     def _confirm_current_stage(self) -> None:
         """Confirm the current selection and advance to next stage."""
         if not self._selection_rect:
+            # For narrator stage, allow confirming without selection (skip)
+            if self._selection_stage == SelectionStage.NARRATOR:
+                self._skip_narrator_stage()
             return  # No selection to confirm
 
         rect = self._selection_rect.normalized()
@@ -563,13 +582,26 @@ class CaptureOverlay(QWidget):
             self.update()
 
         elif self._selection_stage == SelectionStage.BODY:
-            # Store body rect and complete
+            # Store body rect and move to narrator stage
             self._body_rect = rect
-            self._selection_stage = SelectionStage.COMPLETE
-            self._emit_two_stage_result()
+            self._selection_stage = SelectionStage.NARRATOR
+            self._reset_selection()
+            self.update()
 
-    def _emit_two_stage_result(self) -> None:
-        """Emit the result of two-stage selection."""
+        elif self._selection_stage == SelectionStage.NARRATOR:
+            # Store narrator rect and complete
+            self._narrator_rect = rect
+            self._selection_stage = SelectionStage.COMPLETE
+            self._emit_three_stage_result()
+
+    def _skip_narrator_stage(self) -> None:
+        """Skip the narrator region selection and complete with None."""
+        self._narrator_rect = None
+        self._selection_stage = SelectionStage.COMPLETE
+        self._emit_three_stage_result()
+
+    def _emit_three_stage_result(self) -> None:
+        """Emit the result of three-stage selection."""
         from models import Rect
 
         header = Rect(
@@ -584,9 +616,17 @@ class CaptureOverlay(QWidget):
             width=self._body_rect.width(),
             height=self._body_rect.height()
         )
+        narrator = None
+        if self._narrator_rect:
+            narrator = Rect(
+                x=self._narrator_rect.x(),
+                y=self._narrator_rect.y(),
+                width=self._narrator_rect.width(),
+                height=self._narrator_rect.height()
+            )
 
         # Emit before cleanup to preserve rect values
-        self.regions_selected.emit(header, body)
+        self.regions_selected.emit(header, body, narrator)
 
         # Cleanup and close
         self._background_screenshot = None  # Free memory

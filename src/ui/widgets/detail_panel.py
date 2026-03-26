@@ -494,11 +494,12 @@ class DetailPanel(QFrame):
             QTabBar::tab {{
                 background-color: {COLORS['bg_input']};
                 color: {COLORS['text_secondary']};
-                padding: 8px 16px;
+                padding: 8px 20px;
                 margin-right: 4px;
                 border-top-left-radius: {SHAPES['radius_sm']};
                 border-top-right-radius: {SHAPES['radius_sm']};
                 font-size: {TYPOGRAPHY['text_sm']};
+                min-width: 50px;
             }}
             QTabBar::tab:selected {{
                 background-color: {COLORS['accent']};
@@ -508,17 +509,19 @@ class DetailPanel(QFrame):
                 background-color: {COLORS['bg_hover']};
             }}
         """)
+        # Expand tabs to fill available width
+        self._tab_widget.tabBar().setExpanding(True)
 
-        # Tab 0: Submission (editable) - 提出用
+        # Tab 0: Edited (editable)
         self._edited_text = EditableTextArea()
         self._edited_text.edit_finished.connect(self._on_body_edited)
-        self._tab_widget.addTab(self._edited_text, "提出用")
+        self._tab_widget.addTab(self._edited_text, "編集")
 
-        # Tab 1: OCR Raw (read-only) - OCR原文
+        # Tab 1: OCR Raw (read-only)
         self._raw_text = ReadOnlyTextArea()
-        self._tab_widget.addTab(self._raw_text, "OCR原文")
+        self._tab_widget.addTab(self._raw_text, "原文")
 
-        # Tab 2: Diff - 差分
+        # Tab 2: Diff
         self._diff_text = DiffTextArea()
         self._tab_widget.addTab(self._diff_text, "差分")
 

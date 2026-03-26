@@ -3,11 +3,12 @@ CopyPanel Widget
 
 一括コピー機能を提供するパネルコンポーネント。
 Plain / Markdown / JSON 形式でのエクスポートに対応。
+ファイルへのエクスポート機能も提供。
 """
 
 import json
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from enum import Enum
 
 from PySide6.QtCore import Qt, Signal
@@ -91,10 +92,12 @@ class CopyPanel(QFrame):
     Signals:
         copy_requested(str, list): Emitted when copy is requested (format, entry_ids)
         format_changed(str): Emitted when format selection changes
+        export_requested(list): Emitted when export is requested (entries)
     """
 
     copy_requested = Signal(str, list)  # (format, entry_ids)
     format_changed = Signal(str)  # format
+    export_requested = Signal(list)  # entries to export
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -103,6 +106,14 @@ class CopyPanel(QFrame):
         self._selected_ids: List[str] = []
         self._selected_count: int = 0
         self._current_format: CopyFormat = CopyFormat.PLAIN
+
+        # エクスポート設定の保持（ダイアログ間で引き継ぐ）
+        self._export_settings: Dict[str, Any] = {
+            "chapter_name": "",
+            "chapter_number": 1,
+            "episode_number": 1,
+            "output_dir": "",
+        }
 
         self._setup_ui()
         self._connect_signals()
@@ -162,14 +173,27 @@ class CopyPanel(QFrame):
 
         layout.addLayout(toggle_layout)
 
+        # Buttons layout
+        buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(8)
+
         # Copy button
         self._copy_btn = QPushButton("Copy")
         self._copy_btn.setObjectName("copyButton")
         self._copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._copy_btn.setMinimumHeight(36)
         self._update_copy_button_style()
+        buttons_layout.addWidget(self._copy_btn)
 
-        layout.addWidget(self._copy_btn)
+        # Export button
+        self._export_btn = QPushButton("Export")
+        self._export_btn.setObjectName("exportButton")
+        self._export_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._export_btn.setMinimumHeight(36)
+        self._update_export_button_style()
+        buttons_layout.addWidget(self._export_btn)
+
+        layout.addLayout(buttons_layout)
 
     def _get_toggle_style(self, position: str, is_checked: bool) -> str:
         """Get style for toggle button based on position and state."""
@@ -247,10 +271,32 @@ class CopyPanel(QFrame):
             }}
         """)
 
+    def _update_export_button_style(self) -> None:
+        """Update export button style."""
+        self._export_btn.setStyleSheet(f"""
+            QPushButton#exportButton {{
+                background-color: {COLORS['bg_input']};
+                color: {COLORS['text_primary']};
+                border: 1px solid {COLORS['line']};
+                border-radius: {SHAPES['radius_sm']};
+                padding: 8px 16px;
+                font-size: {TYPOGRAPHY['text_base']};
+                font-weight: {TYPOGRAPHY['weight_medium']};
+            }}
+            QPushButton#exportButton:hover {{
+                background-color: {COLORS['bg_hover']};
+                border-color: {COLORS['accent_light']};
+            }}
+            QPushButton#exportButton:pressed {{
+                background-color: {COLORS['bg_input']};
+            }}
+        """)
+
     def _connect_signals(self) -> None:
         """Connect internal signals."""
         self._button_group.buttonClicked.connect(self._on_format_changed)
         self._copy_btn.clicked.connect(self._on_copy_clicked)
+        self._export_btn.clicked.connect(self._on_export_clicked)
 
     def _on_format_changed(self, button: QPushButton) -> None:
         """Handle format toggle button click."""
@@ -280,6 +326,41 @@ class CopyPanel(QFrame):
         logger.info(
             f"Copied {len(entries_to_copy)} entries in {self._current_format.value} format"
         )
+
+    def _on_export_clicked(self) -> None:
+        """Handle export button click."""
+        if not self._entries:
+            logger.warning("No entries to export")
+            return
+
+        # ExportDialogを開く（全エントリを渡し、ダイアログ内で範囲選択）
+        from src.ui.dialogs.export_dialog import ExportDialog
+
+        dialog = ExportDialog(
+            all_entries=self._entries,
+            selected_ids=self._selected_ids,
+            parent=self.window(),
+            initial_chapter_name=self._export_settings["chapter_name"],
+            initial_chapter_number=self._export_settings["chapter_number"],
+            initial_episode_number=self._export_settings["episode_number"],
+            initial_output_dir=self._export_settings["output_dir"],
+        )
+
+        # エクスポート完了時に設定を保存
+        dialog.exported.connect(self._on_export_completed)
+
+        dialog.exec()
+
+        # ダイアログを閉じた後、設定を保持
+        self._export_settings["chapter_name"] = dialog.get_chapter_name()
+        self._export_settings["chapter_number"] = dialog.get_chapter_number()
+        self._export_settings["episode_number"] = dialog.get_episode_number()
+        self._export_settings["output_dir"] = dialog.get_output_dir()
+
+    def _on_export_completed(self, file_path: str) -> None:
+        """Handle export completion."""
+        logger.info(f"Export completed: {file_path}")
+        self.export_requested.emit([file_path])
 
     def _get_entries_to_copy(self) -> List[LogEntry]:
         """Get entries to copy based on selection."""

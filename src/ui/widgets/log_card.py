@@ -63,6 +63,7 @@ class LogCard(QWidget):
     def __init__(
         self,
         entry: Optional[LogEntry] = None,
+        index: int = 0,
         parent: Optional[QWidget] = None
     ):
         """
@@ -70,11 +71,13 @@ class LogCard(QWidget):
 
         Args:
             entry: LogEntry to display (can be set later via set_entry)
+            index: Display index number (1-based)
             parent: Optional parent widget
         """
         super().__init__(parent)
 
         self._entry: Optional[LogEntry] = None
+        self._index: int = index  # 表示番号（1-based）
         self._state = CardState.NORMAL
         self._multi_select_mode = False
         self._is_selected = False
@@ -94,10 +97,10 @@ class LogCard(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setMinimumHeight(SHAPES.get("card_min_height", 72) if isinstance(SHAPES.get("card_min_height"), int) else 72)
 
-        # Create checkbox for multi-select mode (hidden by default)
+        # Create checkbox (always visible)
         self._checkbox = QCheckBox(self)
         self._checkbox.setFixedSize(20, 20)
-        self._checkbox.hide()
+        self._checkbox.show()  # 常に表示
         self._checkbox.stateChanged.connect(self._on_checkbox_changed)
 
     def _setup_fonts(self) -> None:
@@ -127,6 +130,12 @@ class LogCard(QWidget):
         self._badge_font.setFamily(font_family)
         self._badge_font.setPixelSize(11)
         self._badge_font.setWeight(QFont.Weight.Medium)
+
+        # Index number font
+        self._index_font = QFont()
+        self._index_font.setFamily(font_family)
+        self._index_font.setPixelSize(11)
+        self._index_font.setWeight(QFont.Weight.Medium)
 
     def _setup_colors(self) -> None:
         """Set up color configurations from tokens."""
@@ -191,6 +200,18 @@ class LogCard(QWidget):
             self.update()
 
     @property
+    def index(self) -> int:
+        """Get the display index number."""
+        return self._index
+
+    @index.setter
+    def index(self, value: int) -> None:
+        """Set the display index number."""
+        if self._index != value:
+            self._index = value
+            self.update()
+
+    @property
     def multi_select_mode(self) -> bool:
         """Check if multi-select mode is enabled."""
         return self._multi_select_mode
@@ -200,8 +221,7 @@ class LogCard(QWidget):
         """Enable/disable multi-select mode."""
         if self._multi_select_mode != value:
             self._multi_select_mode = value
-            if self._checkbox:
-                self._checkbox.setVisible(value)
+            # チェックボックスは常に表示（multi_select_modeに関係なく）
             self._update_state()
             self.update()
 
@@ -421,18 +441,30 @@ class LogCard(QWidget):
         painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), radius, radius)
 
     def _draw_header(self, painter: QPainter) -> None:
-        """Draw header row (avatar, name/org, timestamp)."""
-        left_margin = 16
+        """Draw header row (index, checkbox, avatar, name/org, timestamp)."""
+        left_margin = 12
         top_margin = 16
         right_margin = 16
 
-        # Adjust for checkbox in multi-select mode
-        content_left = left_margin
-        if self._multi_select_mode:
-            content_left = left_margin + 28
-            # Position checkbox
-            if self._checkbox:
-                self._checkbox.move(left_margin, top_margin + 2)
+        # 番号表示エリア幅
+        index_width = 32
+
+        # Draw index number
+        if self._index > 0:
+            painter.setFont(self._index_font)
+            painter.setPen(QPen(self._text_tertiary))
+            index_text = f"#{self._index}"
+            metrics = QFontMetrics(self._index_font)
+            index_y = top_margin + 4 + metrics.ascent()
+            painter.drawText(left_margin, index_y, index_text)
+
+        # Position checkbox (常に表示)
+        checkbox_left = left_margin + index_width
+        if self._checkbox:
+            self._checkbox.move(checkbox_left, top_margin + 2)
+
+        # Content starts after index and checkbox
+        content_left = checkbox_left + 28
 
         # Draw avatar circle
         avatar_x = content_left
@@ -507,13 +539,13 @@ class LogCard(QWidget):
 
     def _draw_separator(self, painter: QPainter) -> None:
         """Draw separator line under header."""
-        left_margin = 16
+        left_margin = 12
         right_margin = 16
+        index_width = 32
+        checkbox_width = 28
 
-        # Adjust for checkbox in multi-select mode
-        content_left = left_margin
-        if self._multi_select_mode:
-            content_left = left_margin + 28
+        # Content starts after index and checkbox
+        content_left = left_margin + index_width + checkbox_width
 
         # Position: below avatar, aligned with text
         line_left = content_left + self.AVATAR_SIZE + 10
@@ -525,13 +557,13 @@ class LogCard(QWidget):
 
     def _draw_body(self, painter: QPainter) -> None:
         """Draw body text preview."""
-        left_margin = 16
+        left_margin = 12
         right_margin = 16
+        index_width = 32
+        checkbox_width = 28
 
-        # Adjust for checkbox in multi-select mode
-        content_left = left_margin
-        if self._multi_select_mode:
-            content_left = left_margin + 28
+        # Content starts after index and checkbox
+        content_left = left_margin + index_width + checkbox_width
 
         # Position: below separator, aligned with text
         text_left = content_left + self.AVATAR_SIZE + 10
@@ -557,13 +589,13 @@ class LogCard(QWidget):
         if not self._has_badges():
             return
 
-        left_margin = 16
+        left_margin = 12
         right_margin = 16
+        index_width = 32
+        checkbox_width = 28
 
-        # Adjust for checkbox in multi-select mode
-        content_left = left_margin
-        if self._multi_select_mode:
-            content_left = left_margin + 28
+        # Content starts after index and checkbox
+        content_left = left_margin + index_width + checkbox_width
 
         # Position: at bottom, aligned with text
         badge_left = content_left + self.AVATAR_SIZE + 10

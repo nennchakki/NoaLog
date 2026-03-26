@@ -166,7 +166,7 @@ LAYOUT = {
     "card_max_height": 120,
 
     # Halo
-    "halo_size": 32,
+    "halo_size": 48,
 }
 
 

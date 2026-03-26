@@ -77,9 +77,14 @@ class Profile:
     # Capture regions
     header_rect: Optional[Rect] = None
     body_rect: Optional[Rect] = None
+    narrator_rect: Optional[Rect] = None  # 語り部/第三者用のキャプチャ領域
+
+    # Narrator settings
+    narrator_label: str = "語り部"  # narrator_rectキャプチャ時に使用するラベル
 
     # Hotkey
     hotkey: Optional[Hotkey] = None
+    narrator_hotkey: Optional[Hotkey] = None  # narrator用の別キー
 
     # OCR settings (profile-specific overrides)
     ocr_settings: Dict[str, Any] = field(default_factory=dict)
@@ -103,14 +108,19 @@ class Profile:
             updated_at=data.get("updated_at", datetime.now().isoformat()),
             is_active=data.get("is_active", True),
             ocr_settings=data.get("ocr_settings", {}),
+            narrator_label=data.get("narrator_label", "語り部"),
         )
 
         if data.get("header_rect"):
             profile.header_rect = Rect.from_dict(data["header_rect"])
         if data.get("body_rect"):
             profile.body_rect = Rect.from_dict(data["body_rect"])
+        if data.get("narrator_rect"):
+            profile.narrator_rect = Rect.from_dict(data["narrator_rect"])
         if data.get("hotkey"):
             profile.hotkey = Hotkey.from_list(data["hotkey"]["keys"])
+        if data.get("narrator_hotkey"):
+            profile.narrator_hotkey = Hotkey.from_list(data["narrator_hotkey"]["keys"])
 
         return profile
 

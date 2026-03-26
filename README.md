@@ -123,15 +123,12 @@ NoaLog/
 - **Screen Capture**: mss
 - **Hotkey**: pynput
 
-## Development Status
-
-Currently in MVP development phase.
-
-See [ROADMAP.md](docs/ROADMAP.md) for development schedule.
+## Contact
+For licensing inquiries, please open an issue on this repository.
 
 ## License
 
-MIT License
+See [LICENSE](LICENSE).
 
 ## Contributing
 

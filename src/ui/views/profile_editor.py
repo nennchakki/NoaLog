@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QKeySequenceEdit,
     QMessageBox,
     QSizePolicy,
+    QScrollArea,
 )
 from PySide6.QtCore import Qt, Signal, Slot, QSize
 from PySide6.QtGui import QKeySequence
@@ -61,7 +62,7 @@ class RectEditorWidget(QGroupBox):
         self.x_spin = QSpinBox()
         self.x_spin.setRange(0, 9999)
         self.x_spin.setSuffix(" px")
-        self.x_spin.valueChanged.connect(self.value_changed.emit)
+        self.x_spin.valueChanged.connect(lambda _: self.value_changed.emit())
         layout.addWidget(self.x_spin, 0, 1)
 
         # Y座標
@@ -69,7 +70,7 @@ class RectEditorWidget(QGroupBox):
         self.y_spin = QSpinBox()
         self.y_spin.setRange(0, 9999)
         self.y_spin.setSuffix(" px")
-        self.y_spin.valueChanged.connect(self.value_changed.emit)
+        self.y_spin.valueChanged.connect(lambda _: self.value_changed.emit())
         layout.addWidget(self.y_spin, 0, 3)
 
         # 幅
@@ -77,7 +78,7 @@ class RectEditorWidget(QGroupBox):
         self.width_spin = QSpinBox()
         self.width_spin.setRange(1, 9999)
         self.width_spin.setSuffix(" px")
-        self.width_spin.valueChanged.connect(self.value_changed.emit)
+        self.width_spin.valueChanged.connect(lambda _: self.value_changed.emit())
         layout.addWidget(self.width_spin, 1, 1)
 
         # 高さ
@@ -85,7 +86,7 @@ class RectEditorWidget(QGroupBox):
         self.height_spin = QSpinBox()
         self.height_spin.setRange(1, 9999)
         self.height_spin.setSuffix(" px")
-        self.height_spin.valueChanged.connect(self.value_changed.emit)
+        self.height_spin.valueChanged.connect(lambda _: self.value_changed.emit())
         layout.addWidget(self.height_spin, 1, 3)
 
         # プレビュー情報
@@ -162,7 +163,7 @@ class HotkeyEditorWidget(QGroupBox):
         input_layout = QHBoxLayout()
 
         self.key_sequence_edit = QKeySequenceEdit()
-        self.key_sequence_edit.setPlaceholderText("Click to set hotkey...")
+        # Note: QKeySequenceEdit doesn't support setPlaceholderText
         self.key_sequence_edit.keySequenceChanged.connect(self._on_key_changed)
         input_layout.addWidget(self.key_sequence_edit, 1)
 
@@ -294,82 +295,252 @@ class ProfileEditorDialog(QDialog):
     def _setup_ui(self):
         """UIを構築。"""
         self.setWindowTitle("Profile Editor")
-        self.setMinimumSize(500, 600)
-        self.resize(550, 700)
+        self.setMinimumSize(520, 600)
+        self.resize(600, 800)
         self.setModal(True)
 
-        # メインレイアウト
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(16)
+        # メインレイアウト（ダイアログ全体）
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        # タイトル
+        # ヘッダー部分（タイトル - 固定）
+        header_frame = QFrame()
+        header_frame.setStyleSheet("""
+            QFrame {
+                background-color: #0B1B2B;
+                padding: 16px;
+            }
+        """)
+        header_layout = QVBoxLayout(header_frame)
+        header_layout.setContentsMargins(24, 16, 24, 16)
+
         title_label = QLabel("Edit Profile")
         title_label.setObjectName("titleLabel")
-        layout.addWidget(title_label)
+        title_label.setStyleSheet("""
+            QLabel {
+                color: #FFFFFF;
+                font-size: 18px;
+                font-weight: bold;
+            }
+        """)
+        header_layout.addWidget(title_label)
 
-        # 基本情報セクション
+        main_layout.addWidget(header_frame)
+
+        # スクロールエリア
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #F6F1E6;
+            }
+            QScrollBar:vertical {
+                background-color: #E8E3D8;
+                width: 10px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #C0B8A8;
+                border-radius: 5px;
+                min-height: 30px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #A8A090;
+            }
+        """)
+
+        # スクロール内のコンテンツウィジェット
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setContentsMargins(24, 24, 24, 24)
+        scroll_layout.setSpacing(20)
+
+        # === セクション 1: 基本情報 ===
         basic_group = QGroupBox("Basic Information")
-        basic_layout = QFormLayout(basic_group)
+        basic_group.setStyleSheet(self._get_groupbox_style())
+        basic_layout = QVBoxLayout(basic_group)
+        basic_layout.setContentsMargins(16, 20, 16, 16)
         basic_layout.setSpacing(12)
 
         # プロファイル名
+        name_label = QLabel("Profile Name")
+        name_label.setStyleSheet("font-weight: bold; color: #333;")
+        basic_layout.addWidget(name_label)
+
         self.name_edit = QLineEdit()
         self.name_edit.setPlaceholderText("Enter profile name...")
-        basic_layout.addRow("Name:", self.name_edit)
+        self.name_edit.setStyleSheet(self._get_input_style())
+        self.name_edit.setMinimumHeight(36)
+        basic_layout.addWidget(self.name_edit)
 
         # 説明
+        desc_label = QLabel("Description (Optional)")
+        desc_label.setStyleSheet("font-weight: bold; color: #333; margin-top: 8px;")
+        basic_layout.addWidget(desc_label)
+
         self.description_edit = QTextEdit()
-        self.description_edit.setPlaceholderText("Enter profile description (optional)...")
-        self.description_edit.setMaximumHeight(80)
-        basic_layout.addRow("Description:", self.description_edit)
+        self.description_edit.setPlaceholderText("Enter profile description...")
+        self.description_edit.setStyleSheet(self._get_input_style())
+        self.description_edit.setFixedHeight(70)
+        basic_layout.addWidget(self.description_edit)
 
-        layout.addWidget(basic_group)
+        scroll_layout.addWidget(basic_group)
 
-        # キャプチャ領域セクション
-        capture_label = QLabel("Capture Regions")
-        capture_label.setObjectName("subtitleLabel")
-        layout.addWidget(capture_label)
+        # === セクション 2: キャプチャ領域 ===
+        capture_group = QGroupBox("Capture Regions")
+        capture_group.setStyleSheet(self._get_groupbox_style())
+        capture_layout = QVBoxLayout(capture_group)
+        capture_layout.setContentsMargins(16, 20, 16, 16)
+        capture_layout.setSpacing(16)
 
-        capture_description = QLabel(
-            "Define the screen regions to capture for OCR processing."
-        )
-        capture_description.setWordWrap(True)
-        capture_description.setObjectName("subtitleLabel")
-        layout.addWidget(capture_description)
+        capture_desc = QLabel("Define the screen regions to capture for OCR processing.")
+        capture_desc.setWordWrap(True)
+        capture_desc.setStyleSheet("color: #666; font-size: 12px; margin-bottom: 8px;")
+        capture_layout.addWidget(capture_desc)
 
         # ヘッダー領域
-        self.header_rect_editor = RectEditorWidget("Header Region (Speaker Name)")
-        layout.addWidget(self.header_rect_editor)
+        self.header_rect_editor = RectEditorWidget("Header Region (名前)")
+        capture_layout.addWidget(self.header_rect_editor)
 
         # ボディ領域
-        self.body_rect_editor = RectEditorWidget("Body Region (Dialogue Text)")
-        layout.addWidget(self.body_rect_editor)
+        self.body_rect_editor = RectEditorWidget("Body Region (本文)")
+        capture_layout.addWidget(self.body_rect_editor)
 
-        # ホットキー設定
-        self.hotkey_editor = HotkeyEditorWidget("Capture Hotkey")
-        layout.addWidget(self.hotkey_editor)
+        # 語り部領域
+        self.narrator_rect_editor = RectEditorWidget("Narrator Region (語り部)")
+        capture_layout.addWidget(self.narrator_rect_editor)
+
+        # 語り部ラベル設定
+        narrator_label_layout = QHBoxLayout()
+        narrator_label_desc = QLabel("Narrator Label:")
+        narrator_label_desc.setStyleSheet("color: #666; font-size: 12px; min-width: 90px;")
+        narrator_label_layout.addWidget(narrator_label_desc)
+
+        self.narrator_label_edit = QLineEdit()
+        self.narrator_label_edit.setPlaceholderText("語り部")
+        self.narrator_label_edit.setText("語り部")
+        self.narrator_label_edit.setStyleSheet(self._get_input_style())
+        self.narrator_label_edit.setMinimumHeight(32)
+        narrator_label_layout.addWidget(self.narrator_label_edit, 1)
+
+        capture_layout.addLayout(narrator_label_layout)
+
+        scroll_layout.addWidget(capture_group)
+
+        # === セクション 3: ホットキー ===
+        hotkey_group = QGroupBox("Hotkey Settings")
+        hotkey_group.setStyleSheet(self._get_groupbox_style())
+        hotkey_layout = QVBoxLayout(hotkey_group)
+        hotkey_layout.setContentsMargins(16, 20, 16, 16)
+        hotkey_layout.setSpacing(12)
+
+        self.hotkey_editor = HotkeyEditorWidget("Capture Hotkey (名前+本文)")
+        hotkey_layout.addWidget(self.hotkey_editor)
+
+        self.narrator_hotkey_editor = HotkeyEditorWidget("Narrator Hotkey (語り部)")
+        hotkey_layout.addWidget(self.narrator_hotkey_editor)
+
+        scroll_layout.addWidget(hotkey_group)
 
         # スペーサー
-        layout.addStretch()
+        scroll_layout.addStretch()
 
-        # ボタン
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(12)
+        scroll_area.setWidget(scroll_content)
+        main_layout.addWidget(scroll_area, 1)
+
+        # === フッター部分（ボタン - 固定） ===
+        footer_frame = QFrame()
+        footer_frame.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFF;
+                border-top: 1px solid #E0D8C8;
+            }
+        """)
+        footer_layout = QHBoxLayout(footer_frame)
+        footer_layout.setContentsMargins(24, 16, 24, 16)
+        footer_layout.setSpacing(12)
 
         self.cancel_btn = QPushButton("Cancel")
         self.cancel_btn.setObjectName("secondaryButton")
         self.cancel_btn.setMinimumWidth(100)
-        button_layout.addWidget(self.cancel_btn)
+        self.cancel_btn.setMinimumHeight(40)
+        self.cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #E8E3D8;
+                color: #333;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 20px;
+                font-weight: 500;
+            }
+            QPushButton:hover {
+                background-color: #D8D3C8;
+            }
+        """)
+        footer_layout.addWidget(self.cancel_btn)
 
-        button_layout.addStretch()
+        footer_layout.addStretch()
 
         self.save_btn = QPushButton("Save")
         self.save_btn.setObjectName("primaryButton")
         self.save_btn.setMinimumWidth(100)
-        button_layout.addWidget(self.save_btn)
+        self.save_btn.setMinimumHeight(40)
+        self.save_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #63C6FF;
+                color: #0B1B2B;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #4AB8F5;
+            }
+        """)
+        footer_layout.addWidget(self.save_btn)
 
-        layout.addLayout(button_layout)
+        main_layout.addWidget(footer_frame)
+
+    def _get_groupbox_style(self) -> str:
+        """GroupBoxのスタイルを取得。"""
+        return """
+            QGroupBox {
+                background-color: #FFFFFF;
+                border: 1px solid #E0D8C8;
+                border-radius: 8px;
+                margin-top: 8px;
+                padding-top: 12px;
+                font-weight: bold;
+                color: #333;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                left: 16px;
+                padding: 0 8px;
+                background-color: #FFFFFF;
+                color: #0B1B2B;
+            }
+        """
+
+    def _get_input_style(self) -> str:
+        """入力フィールドのスタイルを取得。"""
+        return """
+            QLineEdit, QTextEdit {
+                background-color: #FAFAFA;
+                border: 1px solid #D0C8B8;
+                border-radius: 6px;
+                padding: 8px 12px;
+                color: #333;
+            }
+            QLineEdit:focus, QTextEdit:focus {
+                border-color: #63C6FF;
+            }
+        """
 
     def _apply_theme(self):
         """テーマを適用。"""
@@ -448,7 +619,10 @@ class ProfileEditorDialog(QDialog):
         self.description_edit.setPlainText(profile.description)
         self.header_rect_editor.set_rect(profile.header_rect)
         self.body_rect_editor.set_rect(profile.body_rect)
+        self.narrator_rect_editor.set_rect(profile.narrator_rect)
+        self.narrator_label_edit.setText(profile.narrator_label or "語り部")
         self.hotkey_editor.set_hotkey(profile.hotkey)
+        self.narrator_hotkey_editor.set_hotkey(profile.narrator_hotkey)
 
         # タイトル更新
         self.setWindowTitle(f"Edit Profile - {profile.name}")
@@ -477,7 +651,10 @@ class ProfileEditorDialog(QDialog):
         profile.description = self.description_edit.toPlainText().strip()
         profile.header_rect = self.header_rect_editor.get_rect()
         profile.body_rect = self.body_rect_editor.get_rect()
+        profile.narrator_rect = self.narrator_rect_editor.get_rect()
+        profile.narrator_label = self.narrator_label_edit.text().strip() or "語り部"
         profile.hotkey = self.hotkey_editor.get_hotkey()
+        profile.narrator_hotkey = self.narrator_hotkey_editor.get_hotkey()
 
         return profile
 
@@ -490,7 +667,10 @@ class ProfileEditorDialog(QDialog):
         self.description_edit.clear()
         self.header_rect_editor.clear()
         self.body_rect_editor.clear()
+        self.narrator_rect_editor.clear()
+        self.narrator_label_edit.setText("語り部")
         self.hotkey_editor.clear()
+        self.narrator_hotkey_editor.clear()
 
         self.setWindowTitle("Profile Editor")
         for child in self.findChildren(QLabel):

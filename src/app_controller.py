@@ -7,6 +7,7 @@ NoaLog Application Controller
 
 import json
 import logging
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Callable
@@ -648,8 +649,14 @@ class AppController(QObject):
 
         hotkey_config = self.config.load_config().get("hotkey", {})
 
+        # デフォルトホットキー（macOS: ctrl+key, Windows: ctrl+shift+key）
+        _mac = sys.platform == "darwin"
+        _default_capture = ["ctrl", "l"] if _mac else ["ctrl", "shift", "l"]
+        _default_region = ["ctrl", "r"] if _mac else ["ctrl", "shift", "r"]
+        _default_narrator = ["ctrl", "n"] if _mac else ["ctrl", "shift", "n"]
+
         # 範囲指定ホットキー
-        region_keys = hotkey_config.get("region_selection", ["cmd", "shift", "r"])
+        region_keys = hotkey_config.get("region_selection", _default_region)
         region_hotkey = Hotkey(keys=region_keys)
         self._region_selection_hotkey_id = self._hotkey_manager.register_hotkey(
             region_hotkey, self._on_region_selection_hotkey
@@ -657,7 +664,7 @@ class AppController(QObject):
         logger.info(f"Region selection hotkey registered: {region_hotkey}")
 
         # キャプチャホットキー
-        capture_keys = hotkey_config.get("capture", ["cmd", "shift", "l"])
+        capture_keys = hotkey_config.get("capture", _default_capture)
         capture_hotkey = Hotkey(keys=capture_keys)
         self._capture_hotkey_id = self._hotkey_manager.register_hotkey(
             capture_hotkey, self._on_capture_hotkey
@@ -665,7 +672,7 @@ class AppController(QObject):
         logger.info(f"Capture hotkey registered: {capture_hotkey}")
 
         # 語り部キャプチャホットキー
-        narrator_keys = hotkey_config.get("narrator_capture", ["alt", "n"])
+        narrator_keys = hotkey_config.get("narrator_capture", _default_narrator)
         narrator_hotkey = Hotkey(keys=narrator_keys)
         self._narrator_capture_hotkey_id = self._hotkey_manager.register_hotkey(
             narrator_hotkey, self._on_narrator_capture_hotkey

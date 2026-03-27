@@ -6,6 +6,7 @@ Hotkey Input Widget
 """
 
 import logging
+import sys
 from typing import List, Set, Optional, Dict
 
 from PySide6.QtCore import Qt, Signal
@@ -16,13 +17,22 @@ from PySide6.QtWidgets import (
 
 logger = logging.getLogger(__name__)
 
-# Qt Key to string name mapping
-KEY_NAMES: Dict[int, str] = {
-    # Modifier keys
-    Qt.Key.Key_Control: "ctrl",
-    Qt.Key.Key_Meta: "cmd",  # macOS Command
+# Qt Key to pynput key name mapping
+# macOS: Qt Key_Control = ⌘ Command, Qt Key_Meta = ⌃ Control
+# Windows: Qt Key_Control = Ctrl, Qt Key_Meta = Win key
+_MODIFIER_KEYS: Dict[int, str] = {
     Qt.Key.Key_Alt: "alt",
     Qt.Key.Key_Shift: "shift",
+}
+if sys.platform == "darwin":
+    _MODIFIER_KEYS[Qt.Key.Key_Control] = "cmd"   # ⌘ Command
+    _MODIFIER_KEYS[Qt.Key.Key_Meta] = "ctrl"      # ⌃ Control
+else:
+    _MODIFIER_KEYS[Qt.Key.Key_Control] = "ctrl"
+    _MODIFIER_KEYS[Qt.Key.Key_Meta] = "meta"
+
+KEY_NAMES: Dict[int, str] = {
+    **_MODIFIER_KEYS,
 
     # Function keys
     Qt.Key.Key_F1: "f1",

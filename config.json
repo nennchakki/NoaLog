@@ -11,16 +11,15 @@
     "debounce_ms": 100,
     "throttle_ms": 500,
     "capture": [
-      "alt",
+      "ctrl",
       "l"
     ],
     "region_selection": [
-      "alt",
-      "shift",
+      "ctrl",
       "r"
     ],
     "narrator_capture": [
-      "alt",
+      "ctrl",
       "n"
     ]
   },

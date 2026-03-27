@@ -222,14 +222,26 @@ class HotkeyEditorWidget(QGroupBox):
         for part in parts:
             part = part.strip().lower()
             # Qtのキー名をpynputなどで使える形式に変換
-            key_map = {
-                "ctrl": "ctrl",
-                "control": "ctrl",
-                "shift": "shift",
-                "alt": "alt",
-                "meta": "cmd",  # macOS Command key
-                "cmd": "cmd",
-            }
+            # macOS: Qt Ctrl = ⌘ Command, Qt Meta = ⌃ Control
+            # Windows: Qt Ctrl = Ctrl, Qt Meta = Win key
+            if sys.platform == "darwin":
+                key_map = {
+                    "ctrl": "cmd",      # Qt Ctrl = ⌘ Command
+                    "control": "cmd",
+                    "meta": "ctrl",     # Qt Meta = ⌃ Control
+                    "shift": "shift",
+                    "alt": "alt",
+                    "cmd": "cmd",
+                }
+            else:
+                key_map = {
+                    "ctrl": "ctrl",
+                    "control": "ctrl",
+                    "shift": "shift",
+                    "alt": "alt",
+                    "meta": "meta",
+                    "cmd": "cmd",
+                }
             normalized = key_map.get(part, part)
             keys.append(normalized)
         return keys
@@ -238,14 +250,24 @@ class HotkeyEditorWidget(QGroupBox):
         """Hotkeyの値を設定。"""
         if hotkey and hotkey.keys:
             # キーリストをQt形式に変換
+            # macOS: pynput "ctrl" = ⌃ Control = Qt Meta, "cmd" = ⌘ = Qt Ctrl
+            # Windows: pynput "ctrl" = Ctrl = Qt Ctrl
             qt_keys = []
             for key in hotkey.keys:
-                key_map = {
-                    "ctrl": "Ctrl",
-                    "shift": "Shift",
-                    "alt": "Alt",
-                    "cmd": "Meta",
-                }
+                if sys.platform == "darwin":
+                    key_map = {
+                        "ctrl": "Meta",     # ⌃ Control → Qt Meta
+                        "cmd": "Ctrl",      # ⌘ Command → Qt Ctrl
+                        "shift": "Shift",
+                        "alt": "Alt",
+                    }
+                else:
+                    key_map = {
+                        "ctrl": "Ctrl",
+                        "shift": "Shift",
+                        "alt": "Alt",
+                        "cmd": "Meta",
+                    }
                 qt_keys.append(key_map.get(key.lower(), key.capitalize()))
 
             seq_str = "+".join(qt_keys)

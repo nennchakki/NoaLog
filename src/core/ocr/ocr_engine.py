@@ -1,8 +1,8 @@
 """
 NoaLog OCR Engine Module
 
-PaddleOCRを使用した日本語テキスト認識エンジン。
-EasyOCRへのフォールバック機能付き。
+manga-ocrを優先使用した日本語テキスト認識エンジン。
+PaddleOCR、EasyOCRへのフォールバック機能付き。
 """
 
 from dataclasses import dataclass, field
@@ -260,14 +260,14 @@ class OCREngineError(Exception):
 
 
 class OCREngine:
-    """PaddleOCRベースのOCRエンジン。
+    """OCRエンジン。
 
-    PaddleOCRを優先使用し、利用不可の場合はEasyOCRにフォールバック。
+    manga-ocr（日本語特化）を優先使用し、PaddleOCR、EasyOCRにフォールバック。
 
     Attributes:
         lang: 認識言語 (デフォルト: "japan")
         use_gpu: GPU使用フラグ
-        engine_type: 使用中のエンジン種別 ("paddleocr" or "easyocr")
+        engine_type: 使用中のエンジン種別 ("manga_ocr", "paddleocr", "easyocr")
     """
 
     def __init__(
@@ -298,8 +298,12 @@ class OCREngine:
         self._initialize_engine()
 
     def _initialize_engine(self) -> None:
-        """OCRエンジンを初期化。PaddleOCR優先、フォールバックでEasyOCR。"""
-        # PaddleOCRを試行
+        """OCRエンジンを初期化。manga-ocr優先、PaddleOCR、EasyOCRにフォールバック。"""
+        # manga-ocrを試行（日本語漫画/ゲームテキスト特化、濁点・白抜き文字に強い）
+        if self._try_init_manga_ocr():
+            return
+
+        # フォールバック: PaddleOCR
         if self._try_init_paddleocr():
             return
 
@@ -309,9 +313,31 @@ class OCREngine:
 
         raise OCREngineError(
             "No OCR engine available. "
-            "Please install PaddleOCR (pip install paddleocr paddlepaddle) "
+            "Please install manga-ocr (pip install manga-ocr), "
+            "PaddleOCR (pip install paddleocr paddlepaddle), "
             "or EasyOCR (pip install easyocr)"
         )
+
+    def _try_init_manga_ocr(self) -> bool:
+        """manga-ocrの初期化を試行。
+
+        Returns:
+            初期化成功時True
+        """
+        try:
+            from manga_ocr import MangaOcr
+
+            self._ocr = MangaOcr()
+            self.engine_type = "manga_ocr"
+            logger.info("manga-ocr initialized successfully")
+            return True
+
+        except ImportError:
+            logger.warning("manga-ocr not available")
+            return False
+        except Exception as e:
+            logger.warning(f"manga-ocr initialization failed: {e}")
+            return False
 
     def _try_init_paddleocr(self) -> bool:
         """PaddleOCRの初期化を試行。
@@ -365,7 +391,7 @@ class OCREngine:
                 verbose=False,
             )
             self.engine_type = "easyocr"
-            logger.info("EasyOCR initialized successfully (fallback)")
+            logger.info("EasyOCR initialized successfully")
             return True
 
         except ImportError:
@@ -513,7 +539,9 @@ class OCREngine:
             processed = image
 
         # エンジン別のOCR実行
-        if self.engine_type == "paddleocr":
+        if self.engine_type == "manga_ocr":
+            result = self._recognize_manga_ocr(processed)
+        elif self.engine_type == "paddleocr":
             result = self._recognize_paddleocr(processed)
         elif self.engine_type == "easyocr":
             result = self._recognize_easyocr(processed)
@@ -525,6 +553,44 @@ class OCREngine:
             result.text = self.postprocess_text(result.text)
 
         return result
+
+    def _recognize_manga_ocr(self, image: np.ndarray) -> OCRResult:
+        """manga-ocrで認識。
+
+        manga-ocrはPIL Imageを受け取るため変換が必要。
+        信頼度スコアは提供されないため1.0固定。
+
+        Args:
+            image: 前処理済み画像
+
+        Returns:
+            OCRResult: 認識結果
+        """
+        try:
+            from PIL import Image
+
+            # numpy配列 → PIL Image に変換
+            if len(image.shape) == 2:
+                # グレースケール
+                pil_image = Image.fromarray(image)
+            else:
+                # BGR → RGB
+                pil_image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+            text = self._ocr(pil_image)
+
+            if not text or not text.strip():
+                return OCRResult(text="", confidence=0.0, raw_results=[])
+
+            return OCRResult(
+                text=text.strip(),
+                confidence=1.0,  # manga-ocrは信頼度スコアを返さない
+                raw_results=[text],
+            )
+
+        except Exception as e:
+            logger.error(f"manga-ocr recognition failed: {e}")
+            return OCRResult(text="", confidence=0.0, raw_results=[])
 
     def _recognize_paddleocr(self, image: np.ndarray) -> OCRResult:
         """PaddleOCRで認識。

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 import json
 import os
+import sys
 
 
 class Config:
@@ -93,9 +94,11 @@ class Config:
             "hotkey": {
                 "debounce_ms": 100,
                 "throttle_ms": 500,
-                # Changed from cmd+shift to cmd+option to avoid Chrome extension conflicts
-                "capture": ["cmd", "option", "l"],
-                "region_selection": ["cmd", "option", "r"],
+                # macOS: ⌃+key only (Control is rarely used by apps)
+                # Windows: Ctrl+Shift+key (Ctrl alone conflicts)
+                "capture": ["ctrl", "l"] if sys.platform == "darwin" else ["ctrl", "shift", "l"],
+                "region_selection": ["ctrl", "r"] if sys.platform == "darwin" else ["ctrl", "shift", "r"],
+                "narrator_capture": ["ctrl", "n"] if sys.platform == "darwin" else ["ctrl", "shift", "n"],
             },
             "ui": {
                 "font_size": 14,

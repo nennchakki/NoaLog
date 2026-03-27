@@ -165,13 +165,16 @@ class NoaMainWindow(QMainWindow):
 
         layout.addStretch()
 
-        # Hotkey display (capture and narrator)
+        # Hotkey display (capture and narrator) - horizontal
         hotkey_container = QWidget()
-        hotkey_layout = QVBoxLayout(hotkey_container)
+        hotkey_layout = QHBoxLayout(hotkey_container)
         hotkey_layout.setContentsMargins(0, 0, 0, 0)
-        hotkey_layout.setSpacing(2)
+        hotkey_layout.setSpacing(12)
 
-        self._hotkey_label = QLabel("Capture: Option+L")
+        import sys as _sys
+        _mac = _sys.platform == "darwin"
+        _default_capture = "+".join(NoaMainWindow._format_key_name(k) for k in (["ctrl", "l"] if _mac else ["ctrl", "shift", "l"]))
+        self._hotkey_label = QLabel(f"Capture: {_default_capture}")
         self._hotkey_label.setObjectName("hotkeyLabel")
         self._hotkey_label.setStyleSheet(f"""
             QLabel#hotkeyLabel {{
@@ -181,7 +184,8 @@ class NoaMainWindow(QMainWindow):
         """)
         hotkey_layout.addWidget(self._hotkey_label)
 
-        self._narrator_hotkey_label = QLabel("Narrator: Option+N")
+        _default_narrator = "+".join(NoaMainWindow._format_key_name(k) for k in (["ctrl", "n"] if _mac else ["ctrl", "shift", "n"]))
+        self._narrator_hotkey_label = QLabel(f"Narrator: {_default_narrator}")
         self._narrator_hotkey_label.setObjectName("narratorHotkeyLabel")
         self._narrator_hotkey_label.setStyleSheet(f"""
             QLabel#narratorHotkeyLabel {{
@@ -861,10 +865,24 @@ class NoaMainWindow(QMainWindow):
                 )
                 item.setHidden(not visible)
 
+    @staticmethod
+    def _format_key_name(key: str) -> str:
+        """Format key name for display (platform-aware)."""
+        import sys
+        if sys.platform == "darwin":
+            mac_symbols = {
+                "ctrl": "⌃",
+                "cmd": "⌘",
+                "alt": "⌥",
+                "shift": "⇧",
+            }
+            return mac_symbols.get(key.lower(), key.capitalize())
+        return key.capitalize()
+
     def _update_hotkey_display(self, keys: List[str], hotkey_type: str = "capture") -> None:
         """Update the hotkey display in header."""
         if keys:
-            keys_str = "+".join(k.capitalize() for k in keys)
+            keys_str = "+".join(self._format_key_name(k) for k in keys)
             if hotkey_type == "capture":
                 self._hotkey_label.setText(f"Capture: {keys_str}")
             elif hotkey_type == "narrator":

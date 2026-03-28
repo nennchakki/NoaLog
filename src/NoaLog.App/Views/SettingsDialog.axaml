@@ -1,0 +1,260 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="NoaLog.App.Views.SettingsDialog"
+        Title="Settings"
+        Width="560" Height="680"
+        MinWidth="480" MinHeight="500"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        FontFamily="{DynamicResource DefaultFont}">
+
+    <DockPanel LastChildFill="True">
+
+        <!-- ═══ Header (fixed, dark) ═══ -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource BgDark}"
+                Padding="24,16">
+            <TextBlock Text="Settings"
+                       FontSize="{DynamicResource FontXl}"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource TextOnDark}" />
+        </Border>
+
+        <!-- ═══ Footer (fixed, white) ═══ -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource BgPanel}"
+                BorderBrush="{DynamicResource BorderWarm}"
+                BorderThickness="0,1,0,0"
+                Padding="24,16">
+            <Grid ColumnDefinitions="Auto,*,Auto,8,Auto">
+                <Button Grid.Column="0"
+                        Name="EulaButton"
+                        Content="利用規約"
+                        MinWidth="100" Height="40"
+                        Background="Transparent"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource BorderInputWarm}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource RadiusSm}"
+                        Padding="16,8"
+                        FontSize="{DynamicResource FontBase}"
+                        Cursor="Hand"
+                        Click="OnEulaClick" />
+                <Button Grid.Column="2"
+                        Name="CancelButton"
+                        Content="Cancel"
+                        MinWidth="100" Height="40"
+                        Background="Transparent"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource BorderInputWarm}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource RadiusSm}"
+                        Padding="16,8"
+                        FontSize="{DynamicResource FontBase}"
+                        Cursor="Hand"
+                        Click="OnCancelClick" />
+                <Button Grid.Column="4"
+                        Name="SaveButton"
+                        Content="Save"
+                        MinWidth="100" Height="40"
+                        Background="{DynamicResource Accent}"
+                        Foreground="{DynamicResource TextOnAccent}"
+                        BorderThickness="0"
+                        CornerRadius="{DynamicResource RadiusSm}"
+                        Padding="16,8"
+                        FontSize="{DynamicResource FontBase}"
+                        FontWeight="SemiBold"
+                        Cursor="Hand"
+                        Click="OnSaveClick" />
+            </Grid>
+        </Border>
+
+        <!-- ═══ Scrollable Content ═══ -->
+        <ScrollViewer Background="{DynamicResource BgLight}"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="0" Margin="16">
+
+                <!-- ═══ Section 1: Keybinds ═══ -->
+                <Border Background="{DynamicResource BgPanel}"
+                        BorderBrush="{DynamicResource BorderWarm}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,16">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="Keybinds"
+                                   FontSize="{DynamicResource FontLg}"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                        <TextBlock Text="Click the input field and press a key combination to set the hotkey."
+                                   FontSize="{DynamicResource FontSm}"
+                                   Foreground="{DynamicResource TextSecondary}" />
+
+                        <!-- Region Hotkey -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Region Hotkey"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <Grid ColumnDefinitions="*,8,Auto">
+                                <TextBox Grid.Column="0"
+                                         Name="RegionHotkeyBox"
+                                         IsReadOnly="True"
+                                         Watermark="Press keys..."
+                                         MinHeight="36"
+                                         Background="{DynamicResource BgInput}"
+                                         BorderBrush="{DynamicResource BorderInputWarm}"
+                                         BorderThickness="1"
+                                         CornerRadius="{DynamicResource RadiusSm}"
+                                         Padding="10,8"
+                                         FontSize="{DynamicResource FontBase}"
+                                         FontFamily="{DynamicResource MonoFont}"
+                                         Cursor="Hand"
+                                         KeyDown="OnRegionHotkeyKeyDown" />
+                                <Button Grid.Column="2"
+                                        Content="Clear"
+                                        Width="80" Height="36"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource TextSecondary}"
+                                        BorderBrush="{DynamicResource BorderInputWarm}"
+                                        BorderThickness="1"
+                                        CornerRadius="{DynamicResource RadiusSm}"
+                                        FontSize="{DynamicResource FontSm}"
+                                        Cursor="Hand"
+                                        Click="OnClearRegionHotkey" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Capture Hotkey -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Capture Hotkey"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <Grid ColumnDefinitions="*,8,Auto">
+                                <TextBox Grid.Column="0"
+                                         Name="CaptureHotkeyBox"
+                                         IsReadOnly="True"
+                                         Watermark="Press keys..."
+                                         MinHeight="36"
+                                         Background="{DynamicResource BgInput}"
+                                         BorderBrush="{DynamicResource BorderInputWarm}"
+                                         BorderThickness="1"
+                                         CornerRadius="{DynamicResource RadiusSm}"
+                                         Padding="10,8"
+                                         FontSize="{DynamicResource FontBase}"
+                                         FontFamily="{DynamicResource MonoFont}"
+                                         Cursor="Hand"
+                                         KeyDown="OnCaptureHotkeyKeyDown" />
+                                <Button Grid.Column="2"
+                                        Content="Clear"
+                                        Width="80" Height="36"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource TextSecondary}"
+                                        BorderBrush="{DynamicResource BorderInputWarm}"
+                                        BorderThickness="1"
+                                        CornerRadius="{DynamicResource RadiusSm}"
+                                        FontSize="{DynamicResource FontSm}"
+                                        Cursor="Hand"
+                                        Click="OnClearCaptureHotkey" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Narrator Hotkey -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Narrator Hotkey"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <Grid ColumnDefinitions="*,8,Auto">
+                                <TextBox Grid.Column="0"
+                                         Name="NarratorHotkeyBox"
+                                         IsReadOnly="True"
+                                         Watermark="Press keys..."
+                                         MinHeight="36"
+                                         Background="{DynamicResource BgInput}"
+                                         BorderBrush="{DynamicResource BorderInputWarm}"
+                                         BorderThickness="1"
+                                         CornerRadius="{DynamicResource RadiusSm}"
+                                         Padding="10,8"
+                                         FontSize="{DynamicResource FontBase}"
+                                         FontFamily="{DynamicResource MonoFont}"
+                                         Cursor="Hand"
+                                         KeyDown="OnNarratorHotkeyKeyDown" />
+                                <Button Grid.Column="2"
+                                        Content="Clear"
+                                        Width="80" Height="36"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource TextSecondary}"
+                                        BorderBrush="{DynamicResource BorderInputWarm}"
+                                        BorderThickness="1"
+                                        CornerRadius="{DynamicResource RadiusSm}"
+                                        FontSize="{DynamicResource FontSm}"
+                                        Cursor="Hand"
+                                        Click="OnClearNarratorHotkey" />
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- PRO only: OCR Engine selection -->
+                <Border Name="OcrEngineSection"
+                        Background="{DynamicResource BgPanel}"
+                        BorderBrush="{DynamicResource BorderWarm}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,16">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="OCR Engine"
+                                   FontSize="{DynamicResource FontLg}"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                        <TextBlock Text="Select the OCR engine to use for text recognition."
+                                   FontSize="{DynamicResource FontSm}"
+                                   Foreground="{DynamicResource TextSecondary}" />
+
+                        <ComboBox Name="OcrEngineCombo"
+                                  HorizontalAlignment="Stretch"
+                                  MinHeight="36"
+                                  FontSize="{DynamicResource FontBase}">
+                            <ComboBoxItem Content="manga-ocr" />
+                            <ComboBoxItem Content="Qwen3-VL" />
+                        </ComboBox>
+                    </StackPanel>
+                </Border>
+
+                <!-- ═══ Section 3: Data Collection ═══ -->
+                <Border Background="{DynamicResource BgPanel}"
+                        BorderBrush="{DynamicResource BorderWarm}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,16">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="Data Collection"
+                                   FontSize="{DynamicResource FontLg}"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                        <TextBlock Text="Help improve OCR accuracy by anonymously sharing correction data."
+                                   FontSize="{DynamicResource FontSm}"
+                                   Foreground="{DynamicResource TextSecondary}" />
+
+                        <ToggleSwitch Name="TelemetryToggle"
+                                      OnContent="ON"
+                                      OffContent="OFF" />
+
+                        <TextBlock Text="OCR修正データを匿名で送信し、辞書改善に貢献します。個人情報は一切収集しません。"
+                                   FontSize="{DynamicResource FontSm}"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+    </DockPanel>
+
+</Window>

@@ -1,0 +1,125 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="NoaLog.App.Controls.LogCard">
+
+  <Border Name="CardBorder"
+          Background="#FFFFFF"
+          CornerRadius="10"
+          Padding="16,12"
+          Margin="0,0,0,8"
+          MinHeight="72"
+          BorderThickness="1"
+          BorderBrush="Transparent">
+
+    <Grid ColumnDefinitions="Auto,*">
+
+      <!-- CheckBox -->
+      <CheckBox Name="SelectCheckBox"
+                Grid.Column="0"
+                Width="20" Height="20"
+                VerticalAlignment="Center" />
+
+      <!-- Content -->
+      <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="4">
+
+        <!-- Header row: Speaker + Org | Index -->
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Name="SpeakerName"
+                       FontFamily="{DynamicResource DefaultFont}"
+                       FontSize="14"
+                       FontWeight="Medium"
+                       Foreground="#121826"
+                       VerticalAlignment="Center" />
+            <TextBlock Name="OrgName"
+                       FontFamily="{DynamicResource DefaultFont}"
+                       FontSize="12"
+                       Foreground="#5A6578"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+          <TextBlock Name="IndexLabel"
+                     Grid.Column="1"
+                     FontFamily="{DynamicResource DefaultFont}"
+                     FontSize="11"
+                     FontWeight="Medium"
+                     Foreground="#8A95A8"
+                     VerticalAlignment="Center" />
+        </Grid>
+
+        <!-- Body preview -->
+        <TextBlock Name="BodyPreview"
+                   FontFamily="{DynamicResource DefaultFont}"
+                   FontSize="14"
+                   Foreground="#121826"
+                   TextWrapping="Wrap"
+                   MaxLines="3"
+                   TextTrimming="CharacterEllipsis" />
+
+        <!-- Footer row: Timestamp | Badges -->
+        <Grid ColumnDefinitions="Auto,*">
+          <TextBlock Name="Timestamp"
+                     FontFamily="{DynamicResource DefaultFont}"
+                     FontSize="11"
+                     Foreground="#8A95A8"
+                     VerticalAlignment="Center" />
+          <StackPanel Name="BadgePanel"
+                      Grid.Column="1"
+                      Orientation="Horizontal"
+                      HorizontalAlignment="Right"
+                      Spacing="6">
+
+            <!-- Edited badge -->
+            <Border Name="EditedBadge"
+                    IsVisible="False"
+                    Background="#E5F4FF"
+                    CornerRadius="9999"
+                    Height="18"
+                    Padding="8,2"
+                    VerticalAlignment="Center">
+              <TextBlock Text="Edited"
+                         FontFamily="{DynamicResource DefaultFont}"
+                         FontSize="11"
+                         FontWeight="Medium"
+                         Foreground="#3BA8E8"
+                         VerticalAlignment="Center" />
+            </Border>
+
+            <!-- Narration badge -->
+            <Border Name="NarrationBadge"
+                    IsVisible="False"
+                    Background="#F6F1E6"
+                    CornerRadius="9999"
+                    Height="18"
+                    Padding="8,2"
+                    VerticalAlignment="Center">
+              <TextBlock Text="Narration"
+                         FontFamily="{DynamicResource DefaultFont}"
+                         FontSize="11"
+                         FontWeight="Medium"
+                         Foreground="#8A95A8"
+                         VerticalAlignment="Center" />
+            </Border>
+
+            <!-- Low Conf. badge -->
+            <Border Name="LowConfBadge"
+                    IsVisible="False"
+                    Background="#FFF8E1"
+                    CornerRadius="9999"
+                    Height="18"
+                    Padding="8,2"
+                    VerticalAlignment="Center">
+              <TextBlock Text="Low Conf."
+                         FontFamily="{DynamicResource DefaultFont}"
+                         FontSize="11"
+                         FontWeight="Medium"
+                         Foreground="#F5A623"
+                         VerticalAlignment="Center" />
+            </Border>
+
+          </StackPanel>
+        </Grid>
+
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

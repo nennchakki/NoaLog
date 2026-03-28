@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>NoaLog.App</RootNamespace>
+    <AssemblyName>NoaLog</AssemblyName>
+    <ApplicationIcon />
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- Lite/Pro切替 -->
+  <PropertyGroup Condition="'$(Edition)' == 'Pro'">
+    <DefineConstants>$(DefineConstants);PRO</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Edition)' != 'Pro'">
+    <DefineConstants>$(DefineConstants);LITE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.*" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.*" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.*" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.*" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NoaLog.Core\NoaLog.Core.csproj" />
+  </ItemGroup>
+
+</Project>

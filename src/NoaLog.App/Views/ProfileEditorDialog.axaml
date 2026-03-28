@@ -1,0 +1,361 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="NoaLog.App.Views.ProfileEditorDialog"
+        Title="Edit Profile"
+        Width="600" Height="800"
+        MinWidth="520" MinHeight="600"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        FontFamily="{DynamicResource DefaultFont}">
+
+    <DockPanel LastChildFill="True">
+
+        <!-- ═══ Header (fixed, dark) ═══ -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource BgDark}"
+                Padding="24,16">
+            <TextBlock Text="Edit Profile"
+                       FontSize="{DynamicResource FontXl}"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource TextOnDark}" />
+        </Border>
+
+        <!-- ═══ Footer (fixed, white) ═══ -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource BgPanel}"
+                BorderBrush="{DynamicResource BorderWarm}"
+                BorderThickness="0,1,0,0"
+                Padding="24,16">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <Button Grid.Column="0"
+                        Name="CancelButton"
+                        Content="Cancel"
+                        MinWidth="100" Height="40"
+                        Background="Transparent"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource BorderInputWarm}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource RadiusSm}"
+                        Padding="16,8"
+                        FontSize="{DynamicResource FontBase}"
+                        Cursor="Hand"
+                        Click="OnCancelClick" />
+                <Button Grid.Column="2"
+                        Name="SaveButton"
+                        Content="Save"
+                        MinWidth="100" Height="40"
+                        Background="{DynamicResource Accent}"
+                        Foreground="{DynamicResource TextOnAccent}"
+                        BorderThickness="0"
+                        CornerRadius="{DynamicResource RadiusSm}"
+                        Padding="16,8"
+                        FontSize="{DynamicResource FontBase}"
+                        FontWeight="SemiBold"
+                        Cursor="Hand"
+                        Click="OnSaveClick" />
+            </Grid>
+        </Border>
+
+        <!-- ═══ Scrollable Content ═══ -->
+        <ScrollViewer Background="{DynamicResource BgLight}"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="0" Margin="16">
+
+                <!-- ═══ Section 1: Basic Information ═══ -->
+                <Border Background="{DynamicResource BgPanel}"
+                        BorderBrush="{DynamicResource BorderWarm}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,16">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="Basic Information"
+                                   FontSize="{DynamicResource FontLg}"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+
+                        <!-- Profile Name -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Profile Name"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <TextBox Name="ProfileNameBox"
+                                     Watermark="Enter profile name..."
+                                     MinHeight="36"
+                                     Background="{DynamicResource BgInput}"
+                                     BorderBrush="{DynamicResource BorderInputWarm}"
+                                     BorderThickness="1"
+                                     CornerRadius="{DynamicResource RadiusSm}"
+                                     Padding="10,8"
+                                     FontSize="{DynamicResource FontBase}" />
+                        </StackPanel>
+
+                        <!-- Description -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Description"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <TextBox Name="DescriptionBox"
+                                     Watermark="Enter profile description..."
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     Height="70"
+                                     Background="{DynamicResource BgInput}"
+                                     BorderBrush="{DynamicResource BorderInputWarm}"
+                                     BorderThickness="1"
+                                     CornerRadius="{DynamicResource RadiusSm}"
+                                     Padding="10,8"
+                                     FontSize="{DynamicResource FontBase}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ═══ Section 2: Capture Regions ═══ -->
+                <Border Background="{DynamicResource BgPanel}"
+                        BorderBrush="{DynamicResource BorderWarm}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,16">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="Capture Regions"
+                                   FontSize="{DynamicResource FontLg}"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                        <TextBlock Text="Define the screen regions for OCR capture. Coordinates are in pixels."
+                                   FontSize="{DynamicResource FontSm}"
+                                   Foreground="{DynamicResource TextSecondary}" />
+
+                        <!-- Header Region -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Header Region"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <Grid ColumnDefinitions="*,8,*" RowDefinitions="Auto,8,Auto">
+                                <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="X" FontSize="{DynamicResource FontSm}" Foreground="{DynamicResource TextSecondary}" />
+                                    <NumericUpDown Name="HeaderX" Minimum="0" Maximum="9999" Value="0"
+                                                   MinHeight="36" FontSize="{DynamicResource FontBase}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="0" Grid.Column="2" Spacing="4">
+                                    <TextBlock Text="Y" FontSize="{DynamicResource FontSm}" Foreground="{DynamicResource TextSecondary}" />
+                                    <NumericUpDown Name="HeaderY" Minimum="0" Maximum="9999" Value="0"
+                                                   MinHeight="36" FontSize="{DynamicResource FontBase}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="2" Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="Width" FontSize="{DynamicResource FontSm}" Foreground="{DynamicResource TextSecondary}" />
+                                    <NumericUpDown Name="HeaderW" Minimum="0" Maximum="9999" Value="0"
+                                                   MinHeight="36" FontSize="{DynamicResource FontBase}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="2" Grid.Column="2" Spacing="4">
+                                    <TextBlock Text="Height" FontSize="{DynamicResource FontSm}" Foreground="{DynamicResource TextSecondary}" />
+                                    <NumericUpDown Name="HeaderH" Minimum="0" Maximum="9999" Value="0"
+                                                   MinHeight="36" FontSize="{DynamicResource FontBase}" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Name="HeaderPreview"
+                                       Text="(0, 0) - (0, 0)"
+                                       FontSize="{DynamicResource FontSm}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       FontFamily="{DynamicResource MonoFont}" />
+                        </StackPanel>
+
+                        <!-- Separator -->
+                        <Border Height="1" Background="{DynamicResource BorderWarm}" />
+
+                        <!-- Body Region -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Body Region"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <Grid ColumnDefinitions="*,8,*" RowDefinitions="Auto,8,Auto">
+                                <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="X" FontSize="{DynamicResource FontSm}" Foreground="{DynamicResource TextSecondary}" />
+                                    <NumericUpDown Name="BodyX" Minimum="0" Maximum="9999" Value="0"
+                                                   MinHeight="36" FontSize="{DynamicResource FontBase}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="0" Grid.Column="2" Spacing="4">
+                                    <TextBlock Text="Y" FontSize="{DynamicResource FontSm}" Foreground="{DynamicResource TextSecondary}" />
+                                    <NumericUpDown Name="BodyY" Minimum="0" Maximum="9999" Value="0"
+                                                   MinHeight="36" FontSize="{DynamicResource FontBase}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="2" Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="Width" FontSize="{DynamicResource FontSm}" Foreground="{DynamicResource TextSecondary}" />
+                                    <NumericUpDown Name="BodyW" Minimum="0" Maximum="9999" Value="0"
+                                                   MinHeight="36" FontSize="{DynamicResource FontBase}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="2" Grid.Column="2" Spacing="4">
+                                    <TextBlock Text="Height" FontSize="{DynamicResource FontSm}" Foreground="{DynamicResource TextSecondary}" />
+                                    <NumericUpDown Name="BodyH" Minimum="0" Maximum="9999" Value="0"
+                                                   MinHeight="36" FontSize="{DynamicResource FontBase}" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Name="BodyPreview"
+                                       Text="(0, 0) - (0, 0)"
+                                       FontSize="{DynamicResource FontSm}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       FontFamily="{DynamicResource MonoFont}" />
+                        </StackPanel>
+
+                        <!-- Separator -->
+                        <Border Height="1" Background="{DynamicResource BorderWarm}" />
+
+                        <!-- Narrator Region -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Narrator Region"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <Grid ColumnDefinitions="*,8,*" RowDefinitions="Auto,8,Auto">
+                                <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="X" FontSize="{DynamicResource FontSm}" Foreground="{DynamicResource TextSecondary}" />
+                                    <NumericUpDown Name="NarratorX" Minimum="0" Maximum="9999" Value="0"
+                                                   MinHeight="36" FontSize="{DynamicResource FontBase}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="0" Grid.Column="2" Spacing="4">
+                                    <TextBlock Text="Y" FontSize="{DynamicResource FontSm}" Foreground="{DynamicResource TextSecondary}" />
+                                    <NumericUpDown Name="NarratorY" Minimum="0" Maximum="9999" Value="0"
+                                                   MinHeight="36" FontSize="{DynamicResource FontBase}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="2" Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="Width" FontSize="{DynamicResource FontSm}" Foreground="{DynamicResource TextSecondary}" />
+                                    <NumericUpDown Name="NarratorW" Minimum="0" Maximum="9999" Value="0"
+                                                   MinHeight="36" FontSize="{DynamicResource FontBase}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="2" Grid.Column="2" Spacing="4">
+                                    <TextBlock Text="Height" FontSize="{DynamicResource FontSm}" Foreground="{DynamicResource TextSecondary}" />
+                                    <NumericUpDown Name="NarratorH" Minimum="0" Maximum="9999" Value="0"
+                                                   MinHeight="36" FontSize="{DynamicResource FontBase}" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Name="NarratorPreview"
+                                       Text="(0, 0) - (0, 0)"
+                                       FontSize="{DynamicResource FontSm}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       FontFamily="{DynamicResource MonoFont}" />
+                        </StackPanel>
+
+                        <!-- Separator -->
+                        <Border Height="1" Background="{DynamicResource BorderWarm}" />
+
+                        <!-- Narrator Label -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Narrator Label"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <TextBox Name="NarratorLabelBox"
+                                     Text="語り部"
+                                     MinHeight="36"
+                                     Background="{DynamicResource BgInput}"
+                                     BorderBrush="{DynamicResource BorderInputWarm}"
+                                     BorderThickness="1"
+                                     CornerRadius="{DynamicResource RadiusSm}"
+                                     Padding="10,8"
+                                     FontSize="{DynamicResource FontBase}" />
+                            <TextBlock Text="The label used to identify narrator text in captured logs."
+                                       FontSize="{DynamicResource FontSm}"
+                                       Foreground="{DynamicResource TextSecondary}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ═══ Section 3: Hotkey Settings ═══ -->
+                <Border Background="{DynamicResource BgPanel}"
+                        BorderBrush="{DynamicResource BorderWarm}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,16">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="Hotkey Settings"
+                                   FontSize="{DynamicResource FontLg}"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                        <TextBlock Text="Click the input field and press a key combination to set the hotkey."
+                                   FontSize="{DynamicResource FontSm}"
+                                   Foreground="{DynamicResource TextSecondary}" />
+
+                        <!-- Capture Hotkey -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Capture Hotkey"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <Grid ColumnDefinitions="*,8,Auto">
+                                <TextBox Grid.Column="0"
+                                         Name="CaptureHotkeyBox"
+                                         IsReadOnly="True"
+                                         Watermark="Press keys..."
+                                         MinHeight="36"
+                                         Background="{DynamicResource BgInput}"
+                                         BorderBrush="{DynamicResource BorderInputWarm}"
+                                         BorderThickness="1"
+                                         CornerRadius="{DynamicResource RadiusSm}"
+                                         Padding="10,8"
+                                         FontSize="{DynamicResource FontBase}"
+                                         FontFamily="{DynamicResource MonoFont}"
+                                         Cursor="Hand"
+                                         KeyDown="OnCaptureHotkeyKeyDown" />
+                                <Button Grid.Column="2"
+                                        Content="Clear"
+                                        Width="80" Height="36"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource TextSecondary}"
+                                        BorderBrush="{DynamicResource BorderInputWarm}"
+                                        BorderThickness="1"
+                                        CornerRadius="{DynamicResource RadiusSm}"
+                                        FontSize="{DynamicResource FontSm}"
+                                        Cursor="Hand"
+                                        Click="OnClearCaptureHotkey" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Narrator Hotkey -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Narrator Hotkey"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <Grid ColumnDefinitions="*,8,Auto">
+                                <TextBox Grid.Column="0"
+                                         Name="NarratorHotkeyBox"
+                                         IsReadOnly="True"
+                                         Watermark="Press keys..."
+                                         MinHeight="36"
+                                         Background="{DynamicResource BgInput}"
+                                         BorderBrush="{DynamicResource BorderInputWarm}"
+                                         BorderThickness="1"
+                                         CornerRadius="{DynamicResource RadiusSm}"
+                                         Padding="10,8"
+                                         FontSize="{DynamicResource FontBase}"
+                                         FontFamily="{DynamicResource MonoFont}"
+                                         Cursor="Hand"
+                                         KeyDown="OnNarratorHotkeyKeyDown" />
+                                <Button Grid.Column="2"
+                                        Content="Clear"
+                                        Width="80" Height="36"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource TextSecondary}"
+                                        BorderBrush="{DynamicResource BorderInputWarm}"
+                                        BorderThickness="1"
+                                        CornerRadius="{DynamicResource RadiusSm}"
+                                        FontSize="{DynamicResource FontSm}"
+                                        Cursor="Hand"
+                                        Click="OnClearNarratorHotkey" />
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+    </DockPanel>
+
+</Window>

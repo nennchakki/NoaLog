@@ -1,0 +1,81 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Background Colors -->
+  <SolidColorBrush x:Key="BgLight" Color="#F6F1E6" />        <!-- ivory main bg -->
+  <SolidColorBrush x:Key="BgDark" Color="#0B1B2B" />         <!-- dark navy header -->
+  <SolidColorBrush x:Key="BgPanel" Color="#FFFFFF" />         <!-- white panels -->
+  <SolidColorBrush x:Key="BgHover" Color="#F0F7FF" />         <!-- hover state -->
+  <SolidColorBrush x:Key="BgSelected" Color="#E5F4FF" />      <!-- selected state -->
+  <SolidColorBrush x:Key="BgInput" Color="#FAFAFA" />         <!-- input fields -->
+
+  <!-- Text Colors -->
+  <SolidColorBrush x:Key="TextPrimary" Color="#121826" />
+  <SolidColorBrush x:Key="TextSecondary" Color="#5A6578" />
+  <SolidColorBrush x:Key="TextTertiary" Color="#8A95A8" />
+  <SolidColorBrush x:Key="TextOnDark" Color="#EAF2FF" />
+  <SolidColorBrush x:Key="TextOnAccent" Color="#FFFFFF" />
+
+  <!-- Accent (Noa Cyan) -->
+  <SolidColorBrush x:Key="Accent" Color="#63C6FF" />
+  <SolidColorBrush x:Key="AccentLight" Color="#A7E4FF" />
+  <SolidColorBrush x:Key="AccentDark" Color="#3BA8E8" />
+  <SolidColorBrush x:Key="AccentBg" Color="#E5F4FF" />
+  <SolidColorBrush x:Key="AccentPressed" Color="#2A8BC8" />
+
+  <!-- Border Colors -->
+  <SolidColorBrush x:Key="BorderDefault" Color="#E5EAF2" />
+  <SolidColorBrush x:Key="BorderInput" Color="#C8D2E0" />
+  <SolidColorBrush x:Key="BorderWarm" Color="#E0D8C8" />
+  <SolidColorBrush x:Key="BorderInputWarm" Color="#D0C8B8" />
+
+  <!-- Semantic Colors -->
+  <SolidColorBrush x:Key="Success" Color="#4CAF50" />
+  <SolidColorBrush x:Key="Warning" Color="#F5A623" />
+  <SolidColorBrush x:Key="Error" Color="#E53935" />
+
+  <!-- Badge Colors -->
+  <SolidColorBrush x:Key="BadgeEditedBg" Color="#E5F4FF" />
+  <SolidColorBrush x:Key="BadgeEditedText" Color="#3BA8E8" />
+  <SolidColorBrush x:Key="BadgeNarrationBg" Color="#F6F1E6" />
+  <SolidColorBrush x:Key="BadgeNarrationText" Color="#8A95A8" />
+  <SolidColorBrush x:Key="BadgeWarningBg" Color="#FFF8E1" />
+  <SolidColorBrush x:Key="BadgeWarningText" Color="#F5A623" />
+
+  <!-- Scrollbar Colors -->
+  <SolidColorBrush x:Key="ScrollbarBg" Color="#E8E3D8" />
+  <SolidColorBrush x:Key="ScrollbarHandle" Color="#C0B8A8" />
+  <SolidColorBrush x:Key="ScrollbarHandleHover" Color="#A8A090" />
+
+  <!-- Overlay Colors -->
+  <Color x:Key="OverlayBgColor">#4D1A2744</Color>           <!-- 30% opacity -->
+  <SolidColorBrush x:Key="OverlaySelection" Color="#5EB3F0" />
+  <Color x:Key="OverlaySelectionFillColor">#335EB3F0</Color> <!-- 20% opacity -->
+  <SolidColorBrush x:Key="OverlayConfirmed" Color="#64C864" />
+
+  <!-- Disabled -->
+  <SolidColorBrush x:Key="DisabledBg" Color="#C8D2E0" />
+  <SolidColorBrush x:Key="DisabledText" Color="#8A95A8" />
+
+  <!-- Font Family -->
+  <FontFamily x:Key="DefaultFont">Hiragino Sans, Noto Sans JP, Yu Gothic UI, Segoe UI, avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
+  <FontFamily x:Key="MonoFont">SF Mono, Consolas, Noto Sans Mono CJK JP, monospace</FontFamily>
+
+  <!-- Font Sizes -->
+  <x:Double x:Key="FontXs">11</x:Double>
+  <x:Double x:Key="FontSm">12</x:Double>
+  <x:Double x:Key="FontBase">14</x:Double>
+  <x:Double x:Key="FontLg">16</x:Double>
+  <x:Double x:Key="FontXl">18</x:Double>
+  <x:Double x:Key="Font2xl">24</x:Double>
+
+  <!-- Corner Radius -->
+  <CornerRadius x:Key="RadiusSm">6</CornerRadius>
+  <CornerRadius x:Key="RadiusMd">10</CornerRadius>
+  <CornerRadius x:Key="RadiusLg">14</CornerRadius>
+  <CornerRadius x:Key="RadiusXl">20</CornerRadius>
+  <CornerRadius x:Key="RadiusFull">9999</CornerRadius>
+
+  <!-- Layout Constants -->
+  <x:Double x:Key="HeaderHeight">56</x:Double>
+</ResourceDictionary>

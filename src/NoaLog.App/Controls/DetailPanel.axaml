@@ -1,0 +1,171 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="NoaLog.App.Controls.DetailPanel">
+
+  <Panel>
+
+    <!-- Empty state -->
+    <TextBlock Name="EmptyState"
+               Text="エントリを選択してください"
+               FontFamily="{DynamicResource DefaultFont}"
+               FontSize="14"
+               Foreground="{DynamicResource TextTertiary}"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center" />
+
+    <!-- Detail content (hidden when no entry selected) -->
+    <DockPanel Name="DetailContent" IsVisible="False">
+
+      <!-- Header area -->
+      <Border DockPanel.Dock="Top"
+              Background="{DynamicResource BgLight}"
+              CornerRadius="14"
+              Padding="16"
+              Margin="0,0,0,8">
+        <StackPanel Spacing="4">
+          <TextBlock Name="HeaderSpeakerName"
+                     FontFamily="{DynamicResource DefaultFont}"
+                     FontSize="18"
+                     FontWeight="Bold"
+                     Foreground="{DynamicResource TextPrimary}" />
+          <TextBlock Name="HeaderOrganization"
+                     FontFamily="{DynamicResource DefaultFont}"
+                     FontSize="14"
+                     Foreground="{DynamicResource TextSecondary}" />
+          <TextBlock Name="HeaderTimestamp"
+                     FontFamily="{DynamicResource DefaultFont}"
+                     FontSize="12"
+                     Foreground="{DynamicResource TextTertiary}" />
+        </StackPanel>
+      </Border>
+
+      <!-- TabControl -->
+      <TabControl Name="DetailTabs">
+
+        <!-- Tab 1: Edited -->
+        <TabItem Header="Edited">
+          <DockPanel Margin="0,8,0,0">
+
+            <!-- Undo/Redo buttons -->
+            <StackPanel DockPanel.Dock="Top"
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        Margin="0,0,0,8">
+              <Button Name="UndoButton"
+                      Content="Undo"
+                      FontFamily="{DynamicResource DefaultFont}"
+                      FontSize="12"
+                      Padding="8,4" />
+              <Button Name="RedoButton"
+                      Content="Redo"
+                      FontFamily="{DynamicResource DefaultFont}"
+                      FontSize="12"
+                      Padding="8,4" />
+            </StackPanel>
+
+            <!-- Speaker name (label mode / edit mode) -->
+            <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,8">
+              <TextBlock Text="Speaker"
+                         FontFamily="{DynamicResource DefaultFont}"
+                         FontSize="12"
+                         Foreground="{DynamicResource TextTertiary}" />
+              <!-- Label mode -->
+              <TextBlock Name="EditSpeakerLabel"
+                         FontFamily="{DynamicResource DefaultFont}"
+                         FontSize="14"
+                         FontWeight="Medium"
+                         Foreground="{DynamicResource TextPrimary}"
+                         Cursor="Hand" />
+              <!-- Edit mode -->
+              <TextBox Name="EditSpeakerInput"
+                       IsVisible="False"
+                       FontFamily="{DynamicResource DefaultFont}"
+                       FontSize="14"
+                       Background="#FAFAFA"
+                       BorderBrush="{DynamicResource Accent}"
+                       BorderThickness="1"
+                       CornerRadius="6" />
+            </StackPanel>
+
+            <!-- Organization (label mode / edit mode) -->
+            <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,8">
+              <TextBlock Text="Organization"
+                         FontFamily="{DynamicResource DefaultFont}"
+                         FontSize="12"
+                         Foreground="{DynamicResource TextTertiary}" />
+              <!-- Label mode -->
+              <TextBlock Name="EditOrgLabel"
+                         FontFamily="{DynamicResource DefaultFont}"
+                         FontSize="14"
+                         FontWeight="Medium"
+                         Foreground="{DynamicResource TextPrimary}"
+                         Cursor="Hand" />
+              <!-- Edit mode -->
+              <TextBox Name="EditOrgInput"
+                       IsVisible="False"
+                       FontFamily="{DynamicResource DefaultFont}"
+                       FontSize="14"
+                       Background="#FAFAFA"
+                       BorderBrush="{DynamicResource Accent}"
+                       BorderThickness="1"
+                       CornerRadius="6" />
+            </StackPanel>
+
+            <!-- Body text area (editable) -->
+            <TextBox Name="EditBodyText"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     FontFamily="{DynamicResource DefaultFont}"
+                     FontSize="14"
+                     Background="{DynamicResource BgInput}"
+                     BorderBrush="{DynamicResource BorderDefault}"
+                     BorderThickness="1"
+                     CornerRadius="10"
+                     Padding="12"
+                     MinHeight="120" />
+          </DockPanel>
+        </TabItem>
+
+        <!-- Tab 2: Raw -->
+        <TabItem Header="Raw">
+          <Border Background="{DynamicResource BgLight}"
+                  BorderBrush="{DynamicResource BorderDefault}"
+                  BorderThickness="1"
+                  CornerRadius="10"
+                  Margin="0,8,0,0"
+                  Padding="12">
+            <ScrollViewer>
+              <TextBlock Name="RawText"
+                         FontFamily="{DynamicResource DefaultFont}"
+                         FontSize="14"
+                         Foreground="{DynamicResource TextSecondary}"
+                         TextWrapping="Wrap" />
+            </ScrollViewer>
+          </Border>
+        </TabItem>
+
+        <!-- Tab 3: Diff -->
+        <TabItem Header="Diff">
+          <Border Background="{DynamicResource BgPanel}"
+                  BorderBrush="{DynamicResource BorderDefault}"
+                  BorderThickness="1"
+                  CornerRadius="10"
+                  Margin="0,8,0,0"
+                  Padding="12">
+            <ScrollViewer>
+              <TextBlock Name="DiffText"
+                         FontFamily="SF Mono, Consolas, Menlo, monospace"
+                         FontSize="13"
+                         Foreground="{DynamicResource TextPrimary}"
+                         TextWrapping="Wrap" />
+            </ScrollViewer>
+          </Border>
+        </TabItem>
+
+      </TabControl>
+
+    </DockPanel>
+
+  </Panel>
+
+</UserControl>

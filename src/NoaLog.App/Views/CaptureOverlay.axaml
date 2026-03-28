@@ -1,0 +1,12 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="NoaLog.App.Views.CaptureOverlay"
+        SystemDecorations="None"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent"
+        Topmost="True"
+        WindowStartupLocation="Manual"
+        ShowInTaskbar="False"
+        CanResize="False">
+    <Canvas Name="OverlayCanvas" />
+</Window>

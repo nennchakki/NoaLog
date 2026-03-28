@@ -1,0 +1,147 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="NoaLog.App.Views.ExportDialog"
+        Title="Export"
+        Width="560" Height="560"
+        MinWidth="420" MinHeight="400"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        FontFamily="{DynamicResource DefaultFont}">
+
+    <DockPanel LastChildFill="True">
+
+        <!-- ===  Header === -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource BgPanel}"
+                Padding="24,16">
+            <TextBlock Text="Export"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource TextPrimary}" />
+        </Border>
+
+        <!-- === Footer === -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource BgPanel}"
+                BorderBrush="{DynamicResource BorderDefault}"
+                BorderThickness="0,1,0,0"
+                Padding="24,16">
+            <Grid ColumnDefinitions="*,Auto,8,Auto">
+                <Button Grid.Column="1"
+                        Name="CancelButton"
+                        Content="Cancel"
+                        MinWidth="100" Height="40"
+                        Background="Transparent"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource BorderDefault}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="16,8"
+                        Cursor="Hand"
+                        Click="OnCancelClick" />
+                <Button Grid.Column="3"
+                        Name="SaveButton"
+                        Content="Save"
+                        MinWidth="100" Height="40"
+                        Background="{DynamicResource Accent}"
+                        Foreground="{DynamicResource TextOnAccent}"
+                        BorderThickness="0"
+                        CornerRadius="4"
+                        Padding="16,8"
+                        FontWeight="SemiBold"
+                        Cursor="Hand"
+                        Click="OnSaveClick" />
+            </Grid>
+        </Border>
+
+        <!-- === Content === -->
+        <ScrollViewer Background="{DynamicResource BgLight}"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="16" Margin="24">
+
+                <!-- フォーマット選択 -->
+                <Border Background="{DynamicResource BgPanel}"
+                        BorderBrush="{DynamicResource BorderDefault}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Format"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <RadioButton Name="FormatPlain"
+                                         Content="Plain Text"
+                                         GroupName="Format"
+                                         IsChecked="True"
+                                         Foreground="{DynamicResource TextPrimary}" />
+                            <RadioButton Name="FormatMarkdown"
+                                         Content="Markdown"
+                                         GroupName="Format"
+                                         Foreground="{DynamicResource TextPrimary}" />
+                            <RadioButton Name="FormatJson"
+                                         Content="JSON"
+                                         GroupName="Format"
+                                         Foreground="{DynamicResource TextPrimary}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 範囲選択 -->
+                <Border Background="{DynamicResource BgPanel}"
+                        BorderBrush="{DynamicResource BorderDefault}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Range"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <RadioButton Name="RangeAll"
+                                         Content="All Entries"
+                                         GroupName="Range"
+                                         IsChecked="True"
+                                         Foreground="{DynamicResource TextPrimary}" />
+                            <RadioButton Name="RangeSelected"
+                                         Content="Selected Only"
+                                         GroupName="Range"
+                                         Foreground="{DynamicResource TextPrimary}" />
+                        </StackPanel>
+                        <TextBlock Name="EntryCountLabel"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondary}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- プレビュー -->
+                <Border Background="{DynamicResource BgPanel}"
+                        BorderBrush="{DynamicResource BorderDefault}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Preview"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                        <TextBox Name="PreviewBox"
+                                 IsReadOnly="True"
+                                 AcceptsReturn="True"
+                                 Height="180"
+                                 Background="{DynamicResource BgLight}"
+                                 BorderBrush="{DynamicResource BorderDefault}"
+                                 BorderThickness="1"
+                                 CornerRadius="4"
+                                 Padding="8"
+                                 Foreground="{DynamicResource TextSecondary}"
+                                 TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+    </DockPanel>
+
+</Window>

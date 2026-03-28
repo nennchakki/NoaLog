@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:NoaLog.App.ViewModels"
         xmlns:controls="using:NoaLog.App.Controls"
+        xmlns:views="using:NoaLog.App.Views"
         x:Class="NoaLog.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="NoaLog"
@@ -216,11 +217,10 @@
             <Border Grid.Column="2"
                     Background="{DynamicResource BgLight}">
                 <DockPanel Margin="16">
-                    <!-- Search Bar -->
-                    <TextBox DockPanel.Dock="Top"
-                             Classes="search"
-                             Watermark="Search logs..."
-                             Margin="0,0,0,12" />
+                    <!-- Search Bar (Ctrl+F / Ctrl+H で表示) -->
+                    <views:SearchBar Name="SearchBar"
+                                     DockPanel.Dock="Top"
+                                     Margin="0,0,0,8" />
 
                     <!-- Log Entry List -->
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
@@ -243,7 +243,7 @@
                     BorderThickness="1,0,0,0">
                 <DockPanel>
                     <!-- Copy Panel (bottom, max 180px) -->
-                    <controls:CopyPanel DockPanel.Dock="Bottom" />
+                    <controls:CopyPanel Name="CopyPanel" DockPanel.Dock="Bottom" />
 
                     <!-- Separator -->
                     <Border DockPanel.Dock="Bottom"
@@ -251,7 +251,7 @@
                             Background="{DynamicResource BorderDefault}" />
 
                     <!-- Detail Panel (fills remaining space) -->
-                    <controls:DetailPanel />
+                    <controls:DetailPanel Name="DetailPanel" />
                 </DockPanel>
             </Border>
 

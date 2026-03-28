@@ -1,0 +1,155 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="NoaLog.App.Views.SearchBar"
+             IsVisible="False">
+
+  <!-- 検索・置換バー本体 -->
+  <Border Background="{DynamicResource BgPanel}"
+          BorderBrush="{DynamicResource BorderDefault}"
+          BorderThickness="0,0,0,1"
+          Padding="12,8">
+
+    <StackPanel Spacing="6">
+
+      <!-- 検索行 -->
+      <Grid ColumnDefinitions="*,Auto">
+
+        <!-- 検索入力 + 正規表現トグル -->
+        <StackPanel Orientation="Horizontal" Spacing="6">
+
+          <!-- 検索テキストボックス -->
+          <TextBox Name="SearchInput"
+                   Watermark="検索..."
+                   FontFamily="{DynamicResource DefaultFont}"
+                   FontSize="{DynamicResource FontBase}"
+                   Background="{DynamicResource BgInput}"
+                   BorderBrush="{DynamicResource BorderInput}"
+                   BorderThickness="1"
+                   CornerRadius="{DynamicResource RadiusSm}"
+                   Padding="8,4"
+                   Width="260"
+                   VerticalAlignment="Center" />
+
+          <!-- 正規表現トグルボタン -->
+          <ToggleButton Name="RegexToggle"
+                        Content=".*"
+                        FontFamily="{DynamicResource MonoFont}"
+                        FontSize="{DynamicResource FontSm}"
+                        Foreground="{DynamicResource TextSecondary}"
+                        Background="Transparent"
+                        BorderBrush="{DynamicResource BorderDefault}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource RadiusSm}"
+                        Padding="6,4"
+                        Width="36" Height="30"
+                        VerticalAlignment="Center"
+                        ToolTip.Tip="正規表現 (Regex)" />
+
+          <!-- マッチ数表示 -->
+          <TextBlock Name="MatchCountLabel"
+                     Text="0/0"
+                     FontFamily="{DynamicResource DefaultFont}"
+                     FontSize="{DynamicResource FontSm}"
+                     Foreground="{DynamicResource TextSecondary}"
+                     VerticalAlignment="Center"
+                     MinWidth="40"
+                     TextAlignment="Center" />
+
+          <!-- 前へボタン (Shift+F3) -->
+          <Button Name="PrevMatchButton"
+                  Content="&#x25B2;"
+                  FontSize="{DynamicResource FontXs}"
+                  Foreground="{DynamicResource TextSecondary}"
+                  Background="Transparent"
+                  BorderBrush="{DynamicResource BorderDefault}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource RadiusSm}"
+                  Padding="6,4"
+                  Width="30" Height="30"
+                  VerticalAlignment="Center"
+                  ToolTip.Tip="前の一致 (Shift+F3)" />
+
+          <!-- 次へボタン (F3) -->
+          <Button Name="NextMatchButton"
+                  Content="&#x25BC;"
+                  FontSize="{DynamicResource FontXs}"
+                  Foreground="{DynamicResource TextSecondary}"
+                  Background="Transparent"
+                  BorderBrush="{DynamicResource BorderDefault}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource RadiusSm}"
+                  Padding="6,4"
+                  Width="30" Height="30"
+                  VerticalAlignment="Center"
+                  ToolTip.Tip="次の一致 (F3)" />
+
+        </StackPanel>
+
+        <!-- 閉じるボタン -->
+        <Button Name="CloseButton"
+                Grid.Column="1"
+                Content="&#x2715;"
+                FontSize="{DynamicResource FontSm}"
+                Foreground="{DynamicResource TextSecondary}"
+                Background="Transparent"
+                BorderThickness="0"
+                Padding="6,4"
+                Width="30" Height="30"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Right"
+                ToolTip.Tip="閉じる (Escape)" />
+
+      </Grid>
+
+      <!-- 置換行（Ctrl+H時のみ表示） -->
+      <StackPanel Name="ReplaceSection"
+                  Orientation="Horizontal"
+                  Spacing="6"
+                  IsVisible="False">
+
+        <!-- 置換テキストボックス -->
+        <TextBox Name="ReplaceInput"
+                 Watermark="置換..."
+                 FontFamily="{DynamicResource DefaultFont}"
+                 FontSize="{DynamicResource FontBase}"
+                 Background="{DynamicResource BgInput}"
+                 BorderBrush="{DynamicResource BorderInput}"
+                 BorderThickness="1"
+                 CornerRadius="{DynamicResource RadiusSm}"
+                 Padding="8,4"
+                 Width="260"
+                 VerticalAlignment="Center" />
+
+        <!-- 置換ボタン -->
+        <Button Name="ReplaceButton"
+                Content="置換"
+                FontFamily="{DynamicResource DefaultFont}"
+                FontSize="{DynamicResource FontSm}"
+                Foreground="{DynamicResource TextOnAccent}"
+                Background="{DynamicResource Accent}"
+                BorderThickness="0"
+                CornerRadius="{DynamicResource RadiusSm}"
+                Padding="12,4"
+                Height="30"
+                VerticalAlignment="Center" />
+
+        <!-- すべて置換ボタン -->
+        <Button Name="ReplaceAllButton"
+                Content="すべて置換"
+                FontFamily="{DynamicResource DefaultFont}"
+                FontSize="{DynamicResource FontSm}"
+                Foreground="{DynamicResource Accent}"
+                Background="{DynamicResource AccentLight}"
+                BorderThickness="0"
+                CornerRadius="{DynamicResource RadiusSm}"
+                Padding="12,4"
+                Height="30"
+                VerticalAlignment="Center" />
+
+      </StackPanel>
+
+    </StackPanel>
+
+  </Border>
+
+</UserControl>

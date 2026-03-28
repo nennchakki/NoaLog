@@ -8,3 +8,6 @@ obj/
 TestResults/
 .idea/
 .DS_Store
+
+# ONNX models (too large for GitHub, download separately)
+data/models/*.onnx

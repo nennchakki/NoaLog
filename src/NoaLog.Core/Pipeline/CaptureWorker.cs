@@ -1,0 +1,102 @@
+using NoaLog.Core.Capture;
+using NoaLog.Core.Models;
+using NoaLog.Core.Ocr;
+using NoaLog.Core.Storage;
+
+namespace NoaLog.Core.Pipeline;
+
+public class CaptureWorker
+{
+    private readonly CaptureQueue _queue;
+    private readonly IScreenCapture _capture;
+    private readonly IOcrEngine _ocr;
+    private readonly SqliteStorage _storage;
+    private CancellationTokenSource? _cts;
+    private Task? _workerTask;
+
+    // Event for UI notification when a new log entry is created
+    public event EventHandler<LogEntry>? EntryCreated;
+
+    public CaptureWorker(CaptureQueue queue, IScreenCapture capture, IOcrEngine ocr, SqliteStorage storage)
+    {
+        _queue = queue;
+        _capture = capture;
+        _ocr = ocr;
+        _storage = storage;
+    }
+
+    public void Start()
+    {
+        _cts = new CancellationTokenSource();
+        _workerTask = Task.Run(() => ProcessLoopAsync(_cts.Token));
+    }
+
+    public async Task StopAsync()
+    {
+        _queue.Complete();
+        _cts?.Cancel();
+        if (_workerTask != null)
+            await _workerTask;
+        _cts?.Dispose();
+    }
+
+    private async Task ProcessLoopAsync(CancellationToken ct)
+    {
+        await foreach (var request in _queue.ReadAllAsync(ct))
+        {
+            try
+            {
+                await ProcessRequestAsync(request, ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                // Log error but continue processing
+                System.Diagnostics.Debug.WriteLine($"CaptureWorker error: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task ProcessRequestAsync(CaptureRequest request, CancellationToken ct)
+    {
+        // 1. Capture header region
+        var headerImage = await _capture.CaptureRegionAsync(request.HeaderRect, ct);
+        var headerResult = await _ocr.RecognizeAsync(headerImage, ct);
+
+        // 2. Capture body region
+        var bodyImage = await _capture.CaptureRegionAsync(request.BodyRect, ct);
+        var bodyResult = await _ocr.RecognizeAsync(bodyImage, ct);
+
+        // 3. Capture narrator region (optional)
+        string narratorText = "";
+        if (request.NarratorRect is { } narratorRect)
+        {
+            var narratorImage = await _capture.CaptureRegionAsync(narratorRect, ct);
+            var narratorResult = await _ocr.RecognizeAsync(narratorImage, ct);
+            narratorText = narratorResult.Text;
+        }
+
+        // 4. Build log entry
+        var entry = new LogEntry
+        {
+            Id = Guid.NewGuid().ToString(),
+            ProfileId = request.ProfileId,
+            Timestamp = DateTime.UtcNow,
+            LogType = request.LogType == "narration" ? LogType.Narration : LogType.Dialogue,
+            RawHeader = headerResult.Text,
+            RawBody = bodyResult.Text,
+            SpeakerName = headerResult.Text,
+            BodyText = bodyResult.Text,
+            OcrEngine = _ocr.EngineName,
+        };
+
+        // 5. Save to storage
+        _storage.InsertLogEntry(entry);
+
+        // 6. Notify UI
+        EntryCreated?.Invoke(this, entry);
+    }
+}

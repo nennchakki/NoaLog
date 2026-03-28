@@ -1,81 +1,94 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+  <!-- ═══ 「静謐な観測者」カラーパレット ═══ -->
+  <!-- 生塩ノア（ブルーアーカイブ）の美学: 白・ミニマリスト・静か -->
+
   <!-- Background Colors -->
-  <SolidColorBrush x:Key="BgLight" Color="#F6F1E6" />        <!-- ivory main bg -->
-  <SolidColorBrush x:Key="BgDark" Color="#0B1B2B" />         <!-- dark navy header -->
-  <SolidColorBrush x:Key="BgPanel" Color="#FFFFFF" />         <!-- white panels -->
-  <SolidColorBrush x:Key="BgHover" Color="#F0F7FF" />         <!-- hover state -->
-  <SolidColorBrush x:Key="BgSelected" Color="#E5F4FF" />      <!-- selected state -->
-  <SolidColorBrush x:Key="BgInput" Color="#FAFAFA" />         <!-- input fields -->
+  <SolidColorBrush x:Key="BgLight" Color="#F0F4F8" />        <!-- 微かなブルーグレー サブ背景 -->
+  <SolidColorBrush x:Key="BgDark" Color="#1B2A4A" />         <!-- 深い紺 ヘッダー -->
+  <SolidColorBrush x:Key="BgPanel" Color="#FFFFFF" />         <!-- 純白 メイン背景 -->
+  <SolidColorBrush x:Key="BgHover" Color="#F0F4F8" />         <!-- ホバー時 -->
+  <SolidColorBrush x:Key="BgSelected" Color="#E8F4FB" />      <!-- 選択時 -->
+  <SolidColorBrush x:Key="BgInput" Color="#F8F9FA" />         <!-- 入力フィールド -->
+  <SolidColorBrush x:Key="BgSurface" Color="#F8F9FA" />       <!-- カード表面 -->
 
   <!-- Text Colors -->
-  <SolidColorBrush x:Key="TextPrimary" Color="#121826" />
-  <SolidColorBrush x:Key="TextSecondary" Color="#5A6578" />
-  <SolidColorBrush x:Key="TextTertiary" Color="#8A95A8" />
-  <SolidColorBrush x:Key="TextOnDark" Color="#EAF2FF" />
-  <SolidColorBrush x:Key="TextOnAccent" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="TextPrimary" Color="#2C2C2C" />     <!-- ほぼ黒 メインテキスト -->
+  <SolidColorBrush x:Key="TextSecondary" Color="#8C8C8C" />   <!-- グレー サブテキスト -->
+  <SolidColorBrush x:Key="TextTertiary" Color="#ABABAB" />    <!-- 薄いグレー -->
+  <SolidColorBrush x:Key="TextOnDark" Color="#F0F4F8" />      <!-- ダーク背景上 -->
+  <SolidColorBrush x:Key="TextOnAccent" Color="#FFFFFF" />    <!-- アクセント背景上 -->
 
-  <!-- Accent (Noa Cyan) -->
-  <SolidColorBrush x:Key="Accent" Color="#63C6FF" />
-  <SolidColorBrush x:Key="AccentLight" Color="#A7E4FF" />
-  <SolidColorBrush x:Key="AccentDark" Color="#3BA8E8" />
-  <SolidColorBrush x:Key="AccentBg" Color="#E5F4FF" />
-  <SolidColorBrush x:Key="AccentPressed" Color="#2A8BC8" />
+  <!-- Accent: ノアの瞳色 アイスブルー -->
+  <SolidColorBrush x:Key="Accent" Color="#7EC8E3" />
+  <SolidColorBrush x:Key="AccentLight" Color="#B8E0F0" />     <!-- ミレニアム淡い水色 -->
+  <SolidColorBrush x:Key="AccentDark" Color="#5BB5D6" />
+  <SolidColorBrush x:Key="AccentBg" Color="#E8F4FB" />        <!-- アクセント背景 -->
+  <SolidColorBrush x:Key="AccentPressed" Color="#4AA3C4" />
+  <SolidColorBrush x:Key="AccentSubtle" Color="#B8E0F0" />    <!-- サブアクセント -->
 
-  <!-- Border Colors -->
-  <SolidColorBrush x:Key="BorderDefault" Color="#E5EAF2" />
-  <SolidColorBrush x:Key="BorderInput" Color="#C8D2E0" />
-  <SolidColorBrush x:Key="BorderWarm" Color="#E0D8C8" />
-  <SolidColorBrush x:Key="BorderInputWarm" Color="#D0C8B8" />
+  <!-- Border Colors — 最小限、余白で区切る -->
+  <SolidColorBrush x:Key="BorderDefault" Color="#E8ECF0" />
+  <SolidColorBrush x:Key="BorderInput" Color="#DDE2E8" />
+  <SolidColorBrush x:Key="BorderWarm" Color="#E8ECF0" />
+  <SolidColorBrush x:Key="BorderInputWarm" Color="#DDE2E8" />
+  <SolidColorBrush x:Key="BorderSubtle" Color="#F0F2F5" />    <!-- ごく薄い区切り -->
 
-  <!-- Semantic Colors -->
-  <SolidColorBrush x:Key="Success" Color="#4CAF50" />
-  <SolidColorBrush x:Key="Warning" Color="#F5A623" />
-  <SolidColorBrush x:Key="Error" Color="#E53935" />
+  <!-- Semantic Colors — 抑えたトーン -->
+  <SolidColorBrush x:Key="Success" Color="#7EC8A0" />         <!-- 落ち着いた緑 -->
+  <SolidColorBrush x:Key="Warning" Color="#E8C87E" />         <!-- 柔らかな黄 -->
+  <SolidColorBrush x:Key="Error" Color="#D4A0A0" />           <!-- ロゼ -->
 
   <!-- Badge Colors -->
-  <SolidColorBrush x:Key="BadgeEditedBg" Color="#E5F4FF" />
-  <SolidColorBrush x:Key="BadgeEditedText" Color="#3BA8E8" />
-  <SolidColorBrush x:Key="BadgeNarrationBg" Color="#F6F1E6" />
-  <SolidColorBrush x:Key="BadgeNarrationText" Color="#8A95A8" />
-  <SolidColorBrush x:Key="BadgeWarningBg" Color="#FFF8E1" />
-  <SolidColorBrush x:Key="BadgeWarningText" Color="#F5A623" />
+  <SolidColorBrush x:Key="BadgeEditedBg" Color="#E8F4FB" />
+  <SolidColorBrush x:Key="BadgeEditedText" Color="#5BB5D6" />
+  <SolidColorBrush x:Key="BadgeNarrationBg" Color="#F0F4F8" />
+  <SolidColorBrush x:Key="BadgeNarrationText" Color="#8C8C8C" />
+  <SolidColorBrush x:Key="BadgeWarningBg" Color="#FBF5E8" />
+  <SolidColorBrush x:Key="BadgeWarningText" Color="#C8A050" />
 
   <!-- Scrollbar Colors -->
-  <SolidColorBrush x:Key="ScrollbarBg" Color="#E8E3D8" />
-  <SolidColorBrush x:Key="ScrollbarHandle" Color="#C0B8A8" />
-  <SolidColorBrush x:Key="ScrollbarHandleHover" Color="#A8A090" />
+  <SolidColorBrush x:Key="ScrollbarBg" Color="#F0F2F5" />
+  <SolidColorBrush x:Key="ScrollbarHandle" Color="#DDE2E8" />
+  <SolidColorBrush x:Key="ScrollbarHandleHover" Color="#C8D0D8" />
 
   <!-- Overlay Colors -->
-  <Color x:Key="OverlayBgColor">#4D1A2744</Color>           <!-- 30% opacity -->
-  <SolidColorBrush x:Key="OverlaySelection" Color="#5EB3F0" />
-  <Color x:Key="OverlaySelectionFillColor">#335EB3F0</Color> <!-- 20% opacity -->
-  <SolidColorBrush x:Key="OverlayConfirmed" Color="#64C864" />
+  <Color x:Key="OverlayBgColor">#4D1B2A4A</Color>             <!-- 30% opacity 深紺 -->
+  <SolidColorBrush x:Key="OverlaySelection" Color="#7EC8E3" />
+  <Color x:Key="OverlaySelectionFillColor">#337EC8E3</Color>   <!-- 20% opacity -->
+  <SolidColorBrush x:Key="OverlayConfirmed" Color="#7EC8A0" />
 
   <!-- Disabled -->
-  <SolidColorBrush x:Key="DisabledBg" Color="#C8D2E0" />
-  <SolidColorBrush x:Key="DisabledText" Color="#8A95A8" />
+  <SolidColorBrush x:Key="DisabledBg" Color="#E8ECF0" />
+  <SolidColorBrush x:Key="DisabledText" Color="#ABABAB" />
 
-  <!-- Font Family -->
-  <FontFamily x:Key="DefaultFont">Hiragino Sans, Noto Sans JP, Yu Gothic UI, Segoe UI, avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
+  <!-- ═══ Typography ═══ -->
+  <!-- Noto Sans JP Light 基本、見出しのみ Regular -->
+  <FontFamily x:Key="DefaultFont">Noto Sans JP, Hiragino Sans, Yu Gothic UI, Segoe UI, avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
   <FontFamily x:Key="MonoFont">SF Mono, Consolas, Noto Sans Mono CJK JP, monospace</FontFamily>
 
-  <!-- Font Sizes -->
-  <x:Double x:Key="FontXs">11</x:Double>
-  <x:Double x:Key="FontSm">12</x:Double>
-  <x:Double x:Key="FontBase">14</x:Double>
-  <x:Double x:Key="FontLg">16</x:Double>
-  <x:Double x:Key="FontXl">18</x:Double>
-  <x:Double x:Key="Font2xl">24</x:Double>
+  <!-- Font Sizes — 控えめ、情報密度を高く -->
+  <x:Double x:Key="FontXs">10</x:Double>
+  <x:Double x:Key="FontSm">11</x:Double>
+  <x:Double x:Key="FontBase">13</x:Double>
+  <x:Double x:Key="FontLg">15</x:Double>
+  <x:Double x:Key="FontXl">17</x:Double>
+  <x:Double x:Key="Font2xl">22</x:Double>
 
-  <!-- Corner Radius -->
-  <CornerRadius x:Key="RadiusSm">6</CornerRadius>
-  <CornerRadius x:Key="RadiusMd">10</CornerRadius>
-  <CornerRadius x:Key="RadiusLg">14</CornerRadius>
-  <CornerRadius x:Key="RadiusXl">20</CornerRadius>
+  <!-- Corner Radius — 控えめ (4px 基本) -->
+  <CornerRadius x:Key="RadiusSm">3</CornerRadius>
+  <CornerRadius x:Key="RadiusMd">4</CornerRadius>
+  <CornerRadius x:Key="RadiusLg">6</CornerRadius>
+  <CornerRadius x:Key="RadiusXl">8</CornerRadius>
   <CornerRadius x:Key="RadiusFull">9999</CornerRadius>
 
   <!-- Layout Constants -->
-  <x:Double x:Key="HeaderHeight">56</x:Double>
+  <x:Double x:Key="HeaderHeight">48</x:Double>
+
+  <!-- Animation Durations -->
+  <x:String x:Key="DurationFast">0:0:0.15</x:String>
+  <x:String x:Key="DurationNormal">0:0:0.2</x:String>
+  <x:String x:Key="DurationSlow">0:0:0.3</x:String>
+
 </ResourceDictionary>

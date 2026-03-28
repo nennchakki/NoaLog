@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
+using Avalonia.Animation;
+using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Styling;
 
 namespace NoaLog.App.Views;
 
@@ -151,27 +155,83 @@ public partial class SearchBar : UserControl
     public void Show(bool replaceMode)
     {
         _isReplaceMode = replaceMode;
-        IsVisible = true;
 
         if (_replaceSection is not null)
         {
             _replaceSection.IsVisible = replaceMode;
         }
 
-        // 検索フィールドにフォーカスを設定し、テキストを全選択
-        if (_searchInput is not null)
+        IsVisible = true;
+
+        // スライドインアニメーション
+        var translateTransform = new TranslateTransform(0, -30);
+        RenderTransform = translateTransform;
+        Opacity = 0;
+
+        var slideIn = new Animation
         {
-            _searchInput.Focus();
-            _searchInput.SelectAll();
-        }
+            Duration = TimeSpan.FromMilliseconds(200),
+            Easing = new CubicEaseOut(),
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(TranslateTransform.YProperty, -30.0) } },
+                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(TranslateTransform.YProperty, 0.0) } },
+            }
+        };
+        slideIn.RunAsync(this);
+
+        var fadeIn = new Animation
+        {
+            Duration = TimeSpan.FromMilliseconds(200),
+            Easing = new CubicEaseOut(),
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(OpacityProperty, 0.0) } },
+                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(OpacityProperty, 1.0) } },
+            }
+        };
+        fadeIn.RunAsync(this);
+
+        // 検索フィールドにフォーカスを設定し、テキストを全選択
+        _searchInput?.Focus();
+        _searchInput?.SelectAll();
     }
 
     /// <summary>
     /// 検索バーを非表示にし、状態をリセットする。
     /// </summary>
-    public void Hide()
+    public async void Hide()
     {
+        var slideOut = new Animation
+        {
+            Duration = TimeSpan.FromMilliseconds(200),
+            Easing = new CubicEaseIn(),
+            FillMode = FillMode.Forward,
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(TranslateTransform.YProperty, 0.0) } },
+                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(TranslateTransform.YProperty, -30.0) } },
+            }
+        };
+        var fadeOut = new Animation
+        {
+            Duration = TimeSpan.FromMilliseconds(200),
+            Easing = new CubicEaseIn(),
+            FillMode = FillMode.Forward,
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(OpacityProperty, 1.0) } },
+                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(OpacityProperty, 0.0) } },
+            }
+        };
+
+        _ = slideOut.RunAsync(this);
+        await fadeOut.RunAsync(this);
+
         IsVisible = false;
+        Opacity = 1; // リセット
+        RenderTransform = null;
+
         _matchIndices.Clear();
         _currentMatchIndex = -1;
         UpdateMatchCountDisplay();

@@ -4,10 +4,13 @@
              IsVisible="False">
 
   <!-- 検索・置換バー本体 -->
-  <Border Background="{DynamicResource BgPanel}"
-          BorderBrush="{DynamicResource BorderDefault}"
+  <Border BorderBrush="#E8ECF0"
           BorderThickness="0,0,0,1"
+          CornerRadius="0"
           Padding="12,8">
+    <Border.Background>
+      <SolidColorBrush Color="#FFFFFF" Opacity="0.95" />
+    </Border.Background>
 
     <StackPanel Spacing="6">
 
@@ -22,6 +25,7 @@
                    Watermark="検索..."
                    FontFamily="{DynamicResource DefaultFont}"
                    FontSize="{DynamicResource FontBase}"
+                   FontWeight="Light"
                    Background="{DynamicResource BgInput}"
                    BorderBrush="{DynamicResource BorderInput}"
                    BorderThickness="1"
@@ -112,6 +116,7 @@
                  Watermark="置換..."
                  FontFamily="{DynamicResource DefaultFont}"
                  FontSize="{DynamicResource FontBase}"
+                 FontWeight="Light"
                  Background="{DynamicResource BgInput}"
                  BorderBrush="{DynamicResource BorderInput}"
                  BorderThickness="1"

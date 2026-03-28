@@ -4,122 +4,147 @@
 
   <Border Name="CardBorder"
           Background="#FFFFFF"
-          CornerRadius="10"
-          Padding="16,12"
-          Margin="0,0,0,8"
+          CornerRadius="4"
+          Padding="0"
+          Margin="0,0,0,6"
           MinHeight="72"
           BorderThickness="1"
           BorderBrush="Transparent">
 
-    <Grid ColumnDefinitions="Auto,*">
+    <Border.Transitions>
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.15" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+      </Transitions>
+    </Border.Transitions>
 
-      <!-- CheckBox -->
-      <CheckBox Name="SelectCheckBox"
-                Grid.Column="0"
-                Width="20" Height="20"
-                VerticalAlignment="Center" />
+    <Grid ColumnDefinitions="2,*">
 
-      <!-- Content -->
-      <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="4">
+      <!-- 左端アイスブルー縦線アクセント -->
+      <Border Grid.Column="0"
+              Background="#7EC8E3"
+              CornerRadius="4,0,0,4"
+              Width="2" />
 
-        <!-- Header row: Speaker + Org | Index -->
-        <Grid ColumnDefinitions="*,Auto">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBlock Name="SpeakerName"
+      <!-- Content area -->
+      <Grid Grid.Column="1" ColumnDefinitions="Auto,*" Margin="14,10">
+
+        <!-- CheckBox -->
+        <CheckBox Name="SelectCheckBox"
+                  Grid.Column="0"
+                  Width="20" Height="20"
+                  VerticalAlignment="Center" />
+
+        <!-- Content -->
+        <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="4">
+
+          <!-- Header row: Speaker + Org | Index -->
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Name="SpeakerName"
+                         FontFamily="{DynamicResource DefaultFont}"
+                         FontSize="13"
+                         FontWeight="Normal"
+                         Foreground="#2C2C2C"
+                         VerticalAlignment="Center" />
+              <TextBlock Name="OrgName"
+                         FontFamily="{DynamicResource DefaultFont}"
+                         FontSize="11"
+                         FontWeight="Light"
+                         Foreground="#7EC8E3"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock Name="IndexLabel"
+                       Grid.Column="1"
                        FontFamily="{DynamicResource DefaultFont}"
-                       FontSize="14"
-                       FontWeight="Medium"
-                       Foreground="#121826"
+                       FontSize="10"
+                       FontWeight="Light"
+                       Foreground="#ABABAB"
                        VerticalAlignment="Center" />
-            <TextBlock Name="OrgName"
+          </Grid>
+
+          <!-- Body preview -->
+          <TextBlock Name="BodyPreview"
+                     FontFamily="{DynamicResource DefaultFont}"
+                     FontSize="13"
+                     FontWeight="Light"
+                     Foreground="#2C2C2C"
+                     TextWrapping="Wrap"
+                     MaxLines="3"
+                     TextTrimming="CharacterEllipsis" />
+
+          <!-- Footer row: Badges | Timestamp -->
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Name="BadgePanel"
+                        Grid.Column="0"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Left"
+                        Spacing="6"
+                        VerticalAlignment="Center">
+
+              <!-- Edited badge -->
+              <Border Name="EditedBadge"
+                      IsVisible="False"
+                      Background="#E8F4FB"
+                      CornerRadius="9999"
+                      Height="18"
+                      Padding="8,2"
+                      VerticalAlignment="Center">
+                <TextBlock Text="Edited"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="11"
+                           FontWeight="Medium"
+                           Foreground="#5BB5D6"
+                           VerticalAlignment="Center" />
+              </Border>
+
+              <!-- Narration badge -->
+              <Border Name="NarrationBadge"
+                      IsVisible="False"
+                      Background="#F0F4F8"
+                      CornerRadius="9999"
+                      Height="18"
+                      Padding="8,2"
+                      VerticalAlignment="Center">
+                <TextBlock Text="Narration"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="11"
+                           FontWeight="Medium"
+                           Foreground="#8C8C8C"
+                           VerticalAlignment="Center" />
+              </Border>
+
+              <!-- Low Conf. badge -->
+              <Border Name="LowConfBadge"
+                      IsVisible="False"
+                      Background="#FBF5E8"
+                      CornerRadius="9999"
+                      Height="18"
+                      Padding="8,2"
+                      VerticalAlignment="Center">
+                <TextBlock Text="Low Conf."
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="11"
+                           FontWeight="Medium"
+                           Foreground="#C8A050"
+                           VerticalAlignment="Center" />
+              </Border>
+
+            </StackPanel>
+
+            <!-- Timestamp 右下配置 -->
+            <TextBlock Name="Timestamp"
+                       Grid.Column="1"
                        FontFamily="{DynamicResource DefaultFont}"
-                       FontSize="12"
-                       Foreground="#5A6578"
-                       VerticalAlignment="Center" />
-          </StackPanel>
-          <TextBlock Name="IndexLabel"
-                     Grid.Column="1"
-                     FontFamily="{DynamicResource DefaultFont}"
-                     FontSize="11"
-                     FontWeight="Medium"
-                     Foreground="#8A95A8"
-                     VerticalAlignment="Center" />
-        </Grid>
+                       FontSize="10"
+                       FontWeight="Light"
+                       Foreground="#8C8C8C"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Right" />
+          </Grid>
 
-        <!-- Body preview -->
-        <TextBlock Name="BodyPreview"
-                   FontFamily="{DynamicResource DefaultFont}"
-                   FontSize="14"
-                   Foreground="#121826"
-                   TextWrapping="Wrap"
-                   MaxLines="3"
-                   TextTrimming="CharacterEllipsis" />
-
-        <!-- Footer row: Timestamp | Badges -->
-        <Grid ColumnDefinitions="Auto,*">
-          <TextBlock Name="Timestamp"
-                     FontFamily="{DynamicResource DefaultFont}"
-                     FontSize="11"
-                     Foreground="#8A95A8"
-                     VerticalAlignment="Center" />
-          <StackPanel Name="BadgePanel"
-                      Grid.Column="1"
-                      Orientation="Horizontal"
-                      HorizontalAlignment="Right"
-                      Spacing="6">
-
-            <!-- Edited badge -->
-            <Border Name="EditedBadge"
-                    IsVisible="False"
-                    Background="#E5F4FF"
-                    CornerRadius="9999"
-                    Height="18"
-                    Padding="8,2"
-                    VerticalAlignment="Center">
-              <TextBlock Text="Edited"
-                         FontFamily="{DynamicResource DefaultFont}"
-                         FontSize="11"
-                         FontWeight="Medium"
-                         Foreground="#3BA8E8"
-                         VerticalAlignment="Center" />
-            </Border>
-
-            <!-- Narration badge -->
-            <Border Name="NarrationBadge"
-                    IsVisible="False"
-                    Background="#F6F1E6"
-                    CornerRadius="9999"
-                    Height="18"
-                    Padding="8,2"
-                    VerticalAlignment="Center">
-              <TextBlock Text="Narration"
-                         FontFamily="{DynamicResource DefaultFont}"
-                         FontSize="11"
-                         FontWeight="Medium"
-                         Foreground="#8A95A8"
-                         VerticalAlignment="Center" />
-            </Border>
-
-            <!-- Low Conf. badge -->
-            <Border Name="LowConfBadge"
-                    IsVisible="False"
-                    Background="#FFF8E1"
-                    CornerRadius="9999"
-                    Height="18"
-                    Padding="8,2"
-                    VerticalAlignment="Center">
-              <TextBlock Text="Low Conf."
-                         FontFamily="{DynamicResource DefaultFont}"
-                         FontSize="11"
-                         FontWeight="Medium"
-                         Foreground="#F5A623"
-                         VerticalAlignment="Center" />
-            </Border>
-
-          </StackPanel>
-        </Grid>
-
-      </StackPanel>
+        </StackPanel>
+      </Grid>
     </Grid>
   </Border>
 </UserControl>

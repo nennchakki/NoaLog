@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 namespace NoaLog.App.Views;
 
@@ -41,21 +42,29 @@ public partial class CaptureOverlay : Window
     // Minimum selection size
     private const double MinSelectionSize = 10;
 
-    // Colors / Brushes
+    // Selection blink animation
+    private DispatcherTimer? _selectionBlinkTimer;
+    private double _blinkPhase;
+    private double _selectionOpacity = 1.0;
+
+    // Confirm flash animation fields
+    private DispatcherTimer? _confirmFlashTimer;
+    private double _confirmFlashProgress;
+    private Rect _confirmFlashRect;
+    private bool _isConfirmFlashActive;
+
+    // Colors / Brushes — ice-blue selection
     private static readonly Color OverlayBgColor = Color.FromArgb(77, 26, 39, 68); // #1A2744 @ 30%
-    private static readonly IBrush SelectionBorderBrush = new SolidColorBrush(Color.Parse("#5EB3F0"));
-    private static readonly IBrush SelectionFillBrush = new SolidColorBrush(Color.FromArgb(51, 94, 179, 240)); // 20%
+    private static readonly Color SelectionBorderColor = Color.Parse("#7EC8E3");
+    private static readonly Color SelectionFillColor = Color.FromArgb(51, 126, 200, 227); // #337EC8E3
     private static readonly IBrush ConfirmedBorderBrush = new SolidColorBrush(Color.Parse("#64C864"));
-    private static readonly IBrush ConfirmedFillBrush = new SolidColorBrush(Color.FromArgb(26, 100, 200, 100)); // subtle green
-    private static readonly IBrush InstructionBgBrush = new SolidColorBrush(Color.FromArgb(204, 26, 39, 68)); // 80%
-    private static readonly IBrush AccentIndicatorBrush = new SolidColorBrush(Color.Parse("#5EB3F0"));
-    private static readonly IBrush HandleBorderBrush = new SolidColorBrush(Color.Parse("#5EB3F0"));
+    private static readonly IBrush ConfirmedFillBrush = new SolidColorBrush(Color.FromArgb(26, 100, 200, 100));
+    private static readonly IBrush InstructionBgBrush = new SolidColorBrush(Color.FromArgb(204, 26, 39, 68));
+    private static readonly IBrush AccentIndicatorBrush = new SolidColorBrush(Color.Parse("#7EC8E3"));
+    private static readonly IBrush HandleBorderBrush = new SolidColorBrush(Color.Parse("#7EC8E3"));
     private static readonly IBrush DimensionBgBrush = new SolidColorBrush(Color.FromArgb(200, 20, 30, 50));
 
     // Pens
-    private static readonly IPen SelectionDashPen = new Pen(SelectionBorderBrush, 3,
-        new DashStyle(new double[] { 8, 4 }, 0));
-
     private static readonly IPen ConfirmedPen = new Pen(ConfirmedBorderBrush, 2);
     private static readonly IPen HandlePen = new Pen(HandleBorderBrush, 2);
 
@@ -111,6 +120,7 @@ public partial class CaptureOverlay : Window
             _startPoint = e.GetPosition(this);
             _currentPoint = _startPoint;
             _currentRect = null;
+            StartSelectionBlink();
             InvalidateVisual();
         }
     }
@@ -141,6 +151,7 @@ public partial class CaptureOverlay : Window
         else
         {
             _currentRect = null;
+            StopSelectionBlink();
         }
 
         InvalidateVisual();
@@ -175,6 +186,9 @@ public partial class CaptureOverlay : Window
     {
         if (!_currentRect.HasValue) return;
 
+        StopSelectionBlink();
+        StartConfirmFlash(_currentRect.Value);
+
         switch (_currentStage)
         {
             case SelectionStage.Header:
@@ -207,6 +221,8 @@ public partial class CaptureOverlay : Window
 
     private void CompleteSelection()
     {
+        StopSelectionBlink();
+        StopConfirmFlash();
         RegionsSelected?.Invoke(this, new RegionsSelectedEventArgs
         {
             HeaderRect = _headerRect,
@@ -218,6 +234,8 @@ public partial class CaptureOverlay : Window
 
     private void Cancel()
     {
+        StopSelectionBlink();
+        StopConfirmFlash();
         SelectionCancelled?.Invoke(this, EventArgs.Empty);
         Close();
     }
@@ -238,16 +256,29 @@ public partial class CaptureOverlay : Window
         // 2. Confirmed regions (green solid border)
         DrawConfirmedRegion(context, _headerRect, StageLabels[0]);
         DrawConfirmedRegion(context, _bodyRect, StageLabels[1]);
-        // Narrator is only drawn if already confirmed and we somehow re-render
         DrawConfirmedRegion(context, _narratorRect, StageLabels[2]);
 
-        // 3. Current selection (dashed blue)
+        // 3. Current selection (ice-blue solid 1px with blink)
         if (_currentRect.HasValue)
         {
             DrawSelection(context, _currentRect.Value);
         }
 
-        // 4. Instruction banner at top center
+        // 4. Confirm flash effect (opacity 1 -> 0, 300ms)
+        if (_isConfirmFlashActive)
+        {
+            double flashOpacity = Math.Max(0.0, 1.0 - _confirmFlashProgress);
+            byte borderAlpha = (byte)(255 * flashOpacity);
+            byte fillAlpha = (byte)(80 * flashOpacity);
+            var flashBorderColor = Color.FromArgb(borderAlpha,
+                SelectionBorderColor.R, SelectionBorderColor.G, SelectionBorderColor.B);
+            var flashFillColor = Color.FromArgb(fillAlpha,
+                SelectionBorderColor.R, SelectionBorderColor.G, SelectionBorderColor.B);
+            var flashPen = new Pen(new SolidColorBrush(flashBorderColor), 2);
+            context.DrawRectangle(new SolidColorBrush(flashFillColor), flashPen, _confirmFlashRect);
+        }
+
+        // 5. Instruction banner at top center
         DrawInstruction(context);
     }
 
@@ -257,10 +288,21 @@ public partial class CaptureOverlay : Window
 
     private void DrawSelection(DrawingContext context, Rect rect)
     {
+        // Apply blink opacity to selection brushes
+        byte borderAlpha = (byte)(SelectionBorderColor.A * _selectionOpacity);
+        byte fillAlpha = (byte)(SelectionFillColor.A * _selectionOpacity);
+        var borderColor = Color.FromArgb(borderAlpha,
+            SelectionBorderColor.R, SelectionBorderColor.G, SelectionBorderColor.B);
+        var fillColor = Color.FromArgb(fillAlpha,
+            SelectionFillColor.R, SelectionFillColor.G, SelectionFillColor.B);
+
+        var fillBrush = new SolidColorBrush(fillColor);
+        var borderPen = new Pen(new SolidColorBrush(borderColor), 1);
+
         // Fill
-        context.DrawRectangle(SelectionFillBrush, null, rect);
-        // Dashed border
-        context.DrawRectangle(null, SelectionDashPen, rect);
+        context.DrawRectangle(fillBrush, null, rect);
+        // Solid border (1px ice-blue)
+        context.DrawRectangle(null, borderPen, rect);
         // Corner handles
         DrawCornerHandles(context, rect);
         // Dimension label
@@ -400,6 +442,76 @@ public partial class CaptureOverlay : Window
 
         // Sub text
         context.DrawText(ftSub, new Point(textX, textY + ftMain.Height + gap));
+    }
+
+    // ------------------------------------------------------------------
+    // Selection blink animation — opacity 0.6 <-> 1.0, 1s cycle
+    // ------------------------------------------------------------------
+
+    private void StartSelectionBlink()
+    {
+        StopSelectionBlink();
+        _blinkPhase = 0;
+        _selectionOpacity = 1.0;
+        _selectionBlinkTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        _selectionBlinkTimer.Tick += OnBlinkTimerTick;
+        _selectionBlinkTimer.Start();
+    }
+
+    private void OnBlinkTimerTick(object? sender, EventArgs e)
+    {
+        _blinkPhase += 0.016;
+        // sin wave: opacity oscillates 0.6 ~ 1.0 with 1s cycle
+        _selectionOpacity = 0.8 + 0.2 * Math.Sin(2 * Math.PI * _blinkPhase);
+        InvalidateVisual();
+    }
+
+    private void StopSelectionBlink()
+    {
+        if (_selectionBlinkTimer != null)
+        {
+            _selectionBlinkTimer.Stop();
+            _selectionBlinkTimer.Tick -= OnBlinkTimerTick;
+            _selectionBlinkTimer = null;
+        }
+        _selectionOpacity = 1.0;
+    }
+
+    // ------------------------------------------------------------------
+    // Confirm flash animation — opacity 1 -> 0, 300ms
+    // ------------------------------------------------------------------
+
+    private void StartConfirmFlash(Rect rect)
+    {
+        StopConfirmFlash();
+        _confirmFlashRect = rect;
+        _confirmFlashProgress = 0.0;
+        _isConfirmFlashActive = true;
+        _confirmFlashTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        _confirmFlashTimer.Tick += OnConfirmFlashTick;
+        _confirmFlashTimer.Start();
+    }
+
+    private void OnConfirmFlashTick(object? sender, EventArgs e)
+    {
+        _confirmFlashProgress += 16.0 / 300.0;
+        if (_confirmFlashProgress >= 1.0)
+        {
+            StopConfirmFlash();
+        }
+        InvalidateVisual();
+    }
+
+    private void StopConfirmFlash()
+    {
+        if (_confirmFlashTimer != null)
+        {
+            _confirmFlashTimer.Stop();
+            _confirmFlashTimer.Tick -= OnConfirmFlashTick;
+            _confirmFlashTimer = null;
+        }
+        _isConfirmFlashActive = false;
+        _confirmFlashProgress = 0.0;
     }
 
     // ------------------------------------------------------------------

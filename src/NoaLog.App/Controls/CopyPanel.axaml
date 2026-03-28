@@ -1,22 +1,20 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="NoaLog.App.Controls.CopyPanel"
-             MaxHeight="180">
+             MaxHeight="160">
 
-  <Border Background="{DynamicResource BgLight}"
-          BorderBrush="{DynamicResource BorderInput}"
-          BorderThickness="1"
-          CornerRadius="14"
-          Padding="16">
+  <Border Background="{DynamicResource BgPanel}"
+          Padding="16,12">
 
-    <StackPanel Spacing="12">
+    <StackPanel Spacing="10">
 
-      <!-- Title -->
-      <TextBlock Text="Copy"
+      <!-- Title — 控えめ -->
+      <TextBlock Text="COPY"
                  FontFamily="{DynamicResource DefaultFont}"
-                 FontSize="14"
-                 FontWeight="SemiBold"
-                 Foreground="{DynamicResource TextPrimary}" />
+                 FontSize="{DynamicResource FontSm}"
+                 FontWeight="Normal"
+                 Foreground="{DynamicResource TextSecondary}"
+                 LetterSpacing="1" />
 
       <!-- Format toggle buttons -->
       <StackPanel Orientation="Horizontal" Spacing="0">
@@ -27,11 +25,12 @@
                      IsChecked="True"
                      Content="Plain"
                      FontFamily="{DynamicResource DefaultFont}"
-                     FontSize="13"
-                     Padding="12,6"
-                     MinWidth="56"
+                     FontSize="{DynamicResource FontSm}"
+                     FontWeight="Light"
+                     Padding="12,5"
+                     MinWidth="52"
                      HorizontalContentAlignment="Center"
-                     CornerRadius="6,0,0,6"
+                     CornerRadius="4,0,0,4"
                      BorderThickness="1"
                      Classes="formatToggle" />
 
@@ -40,9 +39,10 @@
                      GroupName="CopyFormat"
                      Content="MD"
                      FontFamily="{DynamicResource DefaultFont}"
-                     FontSize="13"
-                     Padding="12,6"
-                     MinWidth="56"
+                     FontSize="{DynamicResource FontSm}"
+                     FontWeight="Light"
+                     Padding="12,5"
+                     MinWidth="52"
                      HorizontalContentAlignment="Center"
                      CornerRadius="0"
                      BorderThickness="1,1,1,1"
@@ -53,11 +53,12 @@
                      GroupName="CopyFormat"
                      Content="JSON"
                      FontFamily="{DynamicResource DefaultFont}"
-                     FontSize="13"
-                     Padding="12,6"
-                     MinWidth="56"
+                     FontSize="{DynamicResource FontSm}"
+                     FontWeight="Light"
+                     Padding="12,5"
+                     MinWidth="52"
                      HorizontalContentAlignment="Center"
-                     CornerRadius="0,6,6,0"
+                     CornerRadius="0,4,4,0"
                      BorderThickness="1"
                      Classes="formatToggle" />
 
@@ -70,26 +71,28 @@
         <Button Name="CopyButton"
                 Content="Copy"
                 FontFamily="{DynamicResource DefaultFont}"
-                FontSize="14"
-                FontWeight="SemiBold"
+                FontSize="{DynamicResource FontBase}"
+                FontWeight="Normal"
                 Foreground="{DynamicResource TextOnAccent}"
                 Background="{DynamicResource Accent}"
-                CornerRadius="10"
-                Padding="24,12"
-                MinHeight="36"
+                CornerRadius="{DynamicResource RadiusMd}"
+                Padding="20,8"
+                MinHeight="32"
                 HorizontalContentAlignment="Center" />
 
         <!-- Export button -->
         <Button Name="ExportButton"
                 Content="Export"
                 FontFamily="{DynamicResource DefaultFont}"
-                FontSize="14"
-                FontWeight="SemiBold"
-                Foreground="{DynamicResource TextOnAccent}"
-                Background="{DynamicResource Accent}"
-                CornerRadius="10"
-                Padding="24,12"
-                MinHeight="36"
+                FontSize="{DynamicResource FontBase}"
+                FontWeight="Light"
+                Foreground="{DynamicResource Accent}"
+                Background="Transparent"
+                BorderBrush="{DynamicResource BorderInput}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource RadiusMd}"
+                Padding="20,8"
+                MinHeight="32"
                 HorizontalContentAlignment="Center" />
 
       </StackPanel>
@@ -100,38 +103,40 @@
 
   <UserControl.Styles>
 
-    <!-- Format toggle: unchecked state -->
+    <!-- Format toggle: unchecked -->
     <Style Selector="RadioButton.formatToggle">
-      <Setter Property="Background" Value="#FAFAFA" />
-      <Setter Property="BorderBrush" Value="{DynamicResource BorderInputWarm}" />
+      <Setter Property="Background" Value="{DynamicResource BgInput}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderInput}" />
       <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
       <Setter Property="Cursor" Value="Hand" />
     </Style>
 
-    <!-- Format toggle: hover (unchecked) -->
+    <!-- Format toggle: hover -->
     <Style Selector="RadioButton.formatToggle:pointerover">
       <Setter Property="Background" Value="{DynamicResource BgHover}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource AccentLight}" />
     </Style>
 
-    <!-- Format toggle: checked state -->
+    <!-- Format toggle: checked -->
     <Style Selector="RadioButton.formatToggle:checked">
       <Setter Property="Background" Value="{DynamicResource Accent}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
       <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
     </Style>
 
-    <!-- Copy/Export button hover -->
-    <Style Selector="Button#CopyButton:pointerover, Button#ExportButton:pointerover">
+    <!-- Copy button hover -->
+    <Style Selector="Button#CopyButton:pointerover">
       <Setter Property="Background" Value="{DynamicResource AccentDark}" />
     </Style>
-
-    <!-- Copy/Export button pressed -->
-    <Style Selector="Button#CopyButton:pressed, Button#ExportButton:pressed">
+    <Style Selector="Button#CopyButton:pressed">
       <Setter Property="Background" Value="{DynamicResource AccentPressed}" />
     </Style>
 
-    <!-- Copy/Export button disabled -->
+    <!-- Export button hover -->
+    <Style Selector="Button#ExportButton:pointerover">
+      <Setter Property="Background" Value="{DynamicResource BgHover}" />
+    </Style>
+
+    <!-- Disabled -->
     <Style Selector="Button#CopyButton:disabled, Button#ExportButton:disabled">
       <Setter Property="Background" Value="{DynamicResource DisabledBg}" />
       <Setter Property="Foreground" Value="{DynamicResource DisabledText}" />

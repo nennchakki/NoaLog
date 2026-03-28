@@ -1,6 +1,11 @@
+using System;
+using Avalonia.Animation;
+using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Styling;
 using NoaLog.Core.Models;
 
 namespace NoaLog.App.Views;
@@ -24,6 +29,53 @@ public partial class ProfileEditorDialog : Window
         _profile = existingProfile;
         if (_profile != null)
             LoadProfile(_profile);
+    }
+
+    protected override async void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+
+        Opacity = 0;
+        var scaleTransform = new ScaleTransform(0.97, 0.97);
+        RenderTransform = scaleTransform;
+        RenderTransformOrigin = new Avalonia.RelativePoint(0.5, 0.5, Avalonia.RelativeUnit.Relative);
+
+        var fadeIn = new Animation
+        {
+            Duration = TimeSpan.FromMilliseconds(200),
+            Easing = new CubicEaseOut(),
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(OpacityProperty, 0.0) } },
+                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(OpacityProperty, 1.0) } },
+            }
+        };
+
+        var scaleInX = new Animation
+        {
+            Duration = TimeSpan.FromMilliseconds(200),
+            Easing = new CubicEaseOut(),
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(ScaleTransform.ScaleXProperty, 0.97) } },
+                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(ScaleTransform.ScaleXProperty, 1.0) } },
+            }
+        };
+
+        var scaleInY = new Animation
+        {
+            Duration = TimeSpan.FromMilliseconds(200),
+            Easing = new CubicEaseOut(),
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(ScaleTransform.ScaleYProperty, 0.97) } },
+                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(ScaleTransform.ScaleYProperty, 1.0) } },
+            }
+        };
+
+        _ = scaleInX.RunAsync(this);
+        _ = scaleInY.RunAsync(this);
+        await fadeIn.RunAsync(this);
     }
 
     private void LoadProfile(Profile profile)

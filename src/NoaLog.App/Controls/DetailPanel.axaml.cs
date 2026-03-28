@@ -1,8 +1,10 @@
 using System;
 using Avalonia;
+using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Styling;
 using NoaLog.Core.Models;
 
 namespace NoaLog.App.Controls;
@@ -87,12 +89,44 @@ public partial class DetailPanel : UserControl
 
     // --- Public methods ---
 
-    public void SetEntry(LogEntry entry)
+    public async void SetEntry(LogEntry entry)
     {
         _selectedEntry = entry;
         IsEditing = false;
+
+        // クロスフェード: 旧コンテンツをフェードアウト
+        if (_detailContent?.IsVisible == true)
+        {
+            var fadeOut = new Animation
+            {
+                Duration = TimeSpan.FromMilliseconds(150),
+                FillMode = FillMode.Forward,
+                Children =
+                {
+                    new KeyFrame { Cue = new Cue(0), Setters = { new Setter(OpacityProperty, 1.0) } },
+                    new KeyFrame { Cue = new Cue(1), Setters = { new Setter(OpacityProperty, 0.0) } },
+                }
+            };
+            await fadeOut.RunAsync(_detailContent);
+        }
+
         ApplyVisualState();
         PopulateFields();
+
+        // 新コンテンツをフェードイン
+        if (_detailContent != null)
+        {
+            var fadeIn = new Animation
+            {
+                Duration = TimeSpan.FromMilliseconds(150),
+                Children =
+                {
+                    new KeyFrame { Cue = new Cue(0), Setters = { new Setter(OpacityProperty, 0.0) } },
+                    new KeyFrame { Cue = new Cue(1), Setters = { new Setter(OpacityProperty, 1.0) } },
+                }
+            };
+            await fadeIn.RunAsync(_detailContent);
+        }
     }
 
     public void ClearEntry()

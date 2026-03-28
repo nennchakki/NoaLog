@@ -1,18 +1,33 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-  <!-- Primary Button Style -->
+  <!-- ═══ 「静謐な観測者」スタイル ═══ -->
+  <!-- 細いウェイト、控えめな角丸、静かなトランジション -->
+
+  <!-- ── Global Defaults ── -->
+  <Style Selector="TextBlock">
+    <Setter Property="FontFamily" Value="{DynamicResource DefaultFont}" />
+    <Setter Property="FontWeight" Value="Light" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+  </Style>
+
+  <!-- ── Primary Button ── -->
   <Style Selector="Button.primary">
     <Setter Property="Background" Value="{DynamicResource Accent}" />
     <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
     <Setter Property="FontFamily" Value="{DynamicResource DefaultFont}" />
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="CornerRadius" Value="10" />
-    <Setter Property="Padding" Value="24,12" />
-    <Setter Property="MinHeight" Value="44" />
+    <Setter Property="FontSize" Value="{DynamicResource FontBase}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}" />
+    <Setter Property="Padding" Value="20,10" />
+    <Setter Property="MinHeight" Value="36" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
   </Style>
   <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource AccentDark}" />
@@ -22,58 +37,88 @@
   </Style>
   <Style Selector="Button.primary:disabled /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource DisabledBg}" />
+    <Setter Property="Foreground" Value="{DynamicResource DisabledText}" />
   </Style>
 
-  <!-- Secondary Button Style -->
+  <!-- ── Secondary Button ── -->
   <Style Selector="Button.secondary">
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    <Setter Property="Foreground" Value="{DynamicResource Accent}" />
     <Setter Property="FontFamily" Value="{DynamicResource DefaultFont}" />
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="CornerRadius" Value="10" />
-    <Setter Property="Padding" Value="24,12" />
-    <Setter Property="MinHeight" Value="40" />
+    <Setter Property="FontSize" Value="{DynamicResource FontBase}" />
+    <Setter Property="FontWeight" Value="Light" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}" />
+    <Setter Property="Padding" Value="20,10" />
+    <Setter Property="MinHeight" Value="36" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderInput}" />
     <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
   </Style>
   <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource BgHover}" />
   </Style>
 
-  <!-- TextBox/Input Style -->
+  <!-- ── Search TextBox ── -->
   <Style Selector="TextBox.search">
     <Setter Property="Background" Value="{DynamicResource BgPanel}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderInput}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="10" />
-    <Setter Property="Padding" Value="16,10" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}" />
+    <Setter Property="Padding" Value="14,8" />
     <Setter Property="FontFamily" Value="{DynamicResource DefaultFont}" />
-    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontSize" Value="{DynamicResource FontBase}" />
+    <Setter Property="FontWeight" Value="Light" />
     <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
   </Style>
   <Style Selector="TextBox.search:focus /template/ Border">
     <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
   </Style>
 
-  <!-- Section Title Style -->
+  <!-- ── Section Title ── -->
   <Style Selector="TextBlock.sectionTitle">
     <Setter Property="FontFamily" Value="{DynamicResource DefaultFont}" />
-    <Setter Property="FontSize" Value="12" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSm}" />
+    <Setter Property="FontWeight" Value="Normal" />
     <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    <Setter Property="LetterSpacing" Value="1" />
   </Style>
 
-  <!-- ComboBox Style -->
+  <!-- ── ComboBox ── -->
   <Style Selector="ComboBox.profileSelect">
     <Setter Property="Background" Value="{DynamicResource BgInput}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderInput}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="10" />
-    <Setter Property="Padding" Value="12,10" />
-    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}" />
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="MinHeight" Value="34" />
     <Setter Property="FontFamily" Value="{DynamicResource DefaultFont}" />
-    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontSize" Value="{DynamicResource FontBase}" />
+    <Setter Property="FontWeight" Value="Light" />
+  </Style>
+
+  <!-- ── Global TextBox transitions ── -->
+  <Style Selector="TextBox">
+    <Setter Property="FontFamily" Value="{DynamicResource DefaultFont}" />
+    <Setter Property="FontWeight" Value="Light" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <!-- ── ScrollViewer: 薄いスクロールバー ── -->
+  <Style Selector="ScrollViewer /template/ ScrollBar">
+    <Setter Property="Width" Value="6" />
+    <Setter Property="Opacity" Value="0.4" />
+  </Style>
+  <Style Selector="ScrollViewer:pointerover /template/ ScrollBar">
+    <Setter Property="Opacity" Value="0.7" />
   </Style>
 
 </Styles>

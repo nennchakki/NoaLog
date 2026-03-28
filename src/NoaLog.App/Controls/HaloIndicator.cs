@@ -23,8 +23,8 @@ public class HaloIndicator : Control
     public static readonly StyledProperty<HaloState> StateProperty =
         AvaloniaProperty.Register<HaloIndicator, HaloState>(nameof(State), HaloState.Idle);
 
-    private static readonly Color AccentColor = Color.Parse("#63C6FF");
-    private static readonly Color AccentLightColor = Color.Parse("#A7E4FF");
+    private static readonly Color AccentColor = Color.Parse("#7EC8E3");
+    private static readonly Color AccentLightColor = Color.Parse("#B8E0F0");
     private static readonly Color WhiteColor = Colors.White;
 
     private const double DefaultSize = 48.0;

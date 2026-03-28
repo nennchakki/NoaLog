@@ -16,14 +16,14 @@
                 Padding="24,16">
             <TextBlock Text="Settings"
                        FontSize="{DynamicResource FontXl}"
-                       FontWeight="Bold"
+                       FontWeight="Light"
                        Foreground="{DynamicResource TextOnDark}" />
         </Border>
 
         <!-- ═══ Footer (fixed, white) ═══ -->
         <Border DockPanel.Dock="Bottom"
                 Background="{DynamicResource BgPanel}"
-                BorderBrush="{DynamicResource BorderWarm}"
+                BorderBrush="{DynamicResource BorderSubtle}"
                 BorderThickness="0,1,0,0"
                 Padding="24,16">
             <Grid ColumnDefinitions="Auto,*,Auto,8,Auto">

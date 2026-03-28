@@ -12,18 +12,18 @@
 
         <!-- ===  Header === -->
         <Border DockPanel.Dock="Top"
-                Background="{DynamicResource BgPanel}"
+                Background="{DynamicResource BgDark}"
                 Padding="24,16">
             <TextBlock Text="Export"
-                       FontSize="20"
-                       FontWeight="Bold"
-                       Foreground="{DynamicResource TextPrimary}" />
+                       FontSize="{DynamicResource FontXl}"
+                       FontWeight="Light"
+                       Foreground="{DynamicResource TextOnDark}" />
         </Border>
 
         <!-- === Footer === -->
         <Border DockPanel.Dock="Bottom"
                 Background="{DynamicResource BgPanel}"
-                BorderBrush="{DynamicResource BorderDefault}"
+                BorderBrush="{DynamicResource BorderSubtle}"
                 BorderThickness="0,1,0,0"
                 Padding="24,16">
             <Grid ColumnDefinitions="*,Auto,8,Auto">
@@ -33,10 +33,12 @@
                         MinWidth="100" Height="40"
                         Background="Transparent"
                         Foreground="{DynamicResource TextPrimary}"
-                        BorderBrush="{DynamicResource BorderDefault}"
+                        BorderBrush="{DynamicResource BorderInputWarm}"
                         BorderThickness="1"
-                        CornerRadius="4"
+                        CornerRadius="{DynamicResource RadiusSm}"
                         Padding="16,8"
+                        FontSize="{DynamicResource FontBase}"
+                        FontWeight="Light"
                         Cursor="Hand"
                         Click="OnCancelClick" />
                 <Button Grid.Column="3"
@@ -46,8 +48,9 @@
                         Background="{DynamicResource Accent}"
                         Foreground="{DynamicResource TextOnAccent}"
                         BorderThickness="0"
-                        CornerRadius="4"
+                        CornerRadius="{DynamicResource RadiusSm}"
                         Padding="16,8"
+                        FontSize="{DynamicResource FontBase}"
                         FontWeight="SemiBold"
                         Cursor="Hand"
                         Click="OnSaveClick" />
@@ -62,12 +65,13 @@
 
                 <!-- フォーマット選択 -->
                 <Border Background="{DynamicResource BgPanel}"
-                        BorderBrush="{DynamicResource BorderDefault}"
+                        BorderBrush="{DynamicResource BorderWarm}"
                         BorderThickness="1"
                         CornerRadius="8"
                         Padding="20">
                     <StackPanel Spacing="12">
                         <TextBlock Text="Format"
+                                   FontSize="{DynamicResource FontLg}"
                                    FontWeight="Bold"
                                    Foreground="{DynamicResource TextPrimary}" />
                         <StackPanel Orientation="Horizontal" Spacing="16">
@@ -90,12 +94,13 @@
 
                 <!-- 範囲選択 -->
                 <Border Background="{DynamicResource BgPanel}"
-                        BorderBrush="{DynamicResource BorderDefault}"
+                        BorderBrush="{DynamicResource BorderWarm}"
                         BorderThickness="1"
                         CornerRadius="8"
                         Padding="20">
                     <StackPanel Spacing="12">
                         <TextBlock Text="Range"
+                                   FontSize="{DynamicResource FontLg}"
                                    FontWeight="Bold"
                                    Foreground="{DynamicResource TextPrimary}" />
                         <StackPanel Orientation="Horizontal" Spacing="16">
@@ -117,12 +122,13 @@
 
                 <!-- プレビュー -->
                 <Border Background="{DynamicResource BgPanel}"
-                        BorderBrush="{DynamicResource BorderDefault}"
+                        BorderBrush="{DynamicResource BorderWarm}"
                         BorderThickness="1"
                         CornerRadius="8"
                         Padding="20">
                     <StackPanel Spacing="8">
                         <TextBlock Text="Preview"
+                                   FontSize="{DynamicResource FontLg}"
                                    FontWeight="Bold"
                                    Foreground="{DynamicResource TextPrimary}" />
                         <TextBox Name="PreviewBox"
@@ -130,7 +136,7 @@
                                  AcceptsReturn="True"
                                  Height="180"
                                  Background="{DynamicResource BgLight}"
-                                 BorderBrush="{DynamicResource BorderDefault}"
+                                 BorderBrush="{DynamicResource BorderWarm}"
                                  BorderThickness="1"
                                  CornerRadius="4"
                                  Padding="8"

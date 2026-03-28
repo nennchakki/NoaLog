@@ -1,9 +1,12 @@
 using System;
 using Avalonia;
+using Avalonia.Animation;
+using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Styling;
 
 namespace NoaLog.App.Controls;
 
@@ -127,9 +130,9 @@ public partial class LogCard : UserControl
 
     // --- Brushes ---
     private static readonly IBrush NormalBackground = SolidColorBrush.Parse("#FFFFFF");
-    private static readonly IBrush HoverBackground = SolidColorBrush.Parse("#F0F7FF");
-    private static readonly IBrush SelectedBackground = SolidColorBrush.Parse("#E5F4FF");
-    private static readonly IBrush SelectedBorderBrush = SolidColorBrush.Parse("#63C6FF");
+    private static readonly IBrush HoverBackground = SolidColorBrush.Parse("#F0F4F8");
+    private static readonly IBrush SelectedBackground = SolidColorBrush.Parse("#E8F4FB");
+    private static readonly IBrush SelectedBorderBrush = SolidColorBrush.Parse("#7EC8E3");
     private static readonly IBrush TransparentBrush = Brushes.Transparent;
 
     public LogCard()
@@ -152,6 +155,35 @@ public partial class LogCard : UserControl
         _lowConfBadge = this.FindControl<Border>("LowConfBadge");
 
         ApplyPropertyValues();
+
+        // フェードイン + スライドアップアニメーション
+        Opacity = 0;
+        var translateTransform = new TranslateTransform(0, 8);
+        RenderTransform = translateTransform;
+
+        var opacityAnimation = new Animation
+        {
+            Duration = TimeSpan.FromMilliseconds(300),
+            Easing = new CubicEaseOut(),
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(OpacityProperty, 0.0) } },
+                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(OpacityProperty, 1.0) } },
+            }
+        };
+        opacityAnimation.RunAsync(this);
+
+        var slideAnimation = new Animation
+        {
+            Duration = TimeSpan.FromMilliseconds(300),
+            Easing = new CubicEaseOut(),
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(TranslateTransform.YProperty, 8.0) } },
+                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(TranslateTransform.YProperty, 0.0) } },
+            }
+        };
+        slideAnimation.RunAsync(this);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

@@ -9,6 +9,7 @@
                Text="エントリを選択してください"
                FontFamily="{DynamicResource DefaultFont}"
                FontSize="14"
+               FontWeight="Light"
                Foreground="{DynamicResource TextTertiary}"
                HorizontalAlignment="Center"
                VerticalAlignment="Center" />
@@ -19,22 +20,24 @@
       <!-- Header area -->
       <Border DockPanel.Dock="Top"
               Background="{DynamicResource BgLight}"
-              CornerRadius="14"
+              CornerRadius="{DynamicResource RadiusMd}"
               Padding="16"
               Margin="0,0,0,8">
         <StackPanel Spacing="4">
           <TextBlock Name="HeaderSpeakerName"
                      FontFamily="{DynamicResource DefaultFont}"
                      FontSize="18"
-                     FontWeight="Bold"
+                     FontWeight="Light"
                      Foreground="{DynamicResource TextPrimary}" />
           <TextBlock Name="HeaderOrganization"
                      FontFamily="{DynamicResource DefaultFont}"
                      FontSize="14"
+                     FontWeight="Light"
                      Foreground="{DynamicResource TextSecondary}" />
           <TextBlock Name="HeaderTimestamp"
                      FontFamily="{DynamicResource DefaultFont}"
                      FontSize="12"
+                     FontWeight="Light"
                      Foreground="{DynamicResource TextTertiary}" />
         </StackPanel>
       </Border>
@@ -43,7 +46,10 @@
       <TabControl Name="DetailTabs">
 
         <!-- Tab 1: Edited -->
-        <TabItem Header="Edited">
+        <TabItem>
+          <TabItem.Header>
+            <TextBlock Text="Edited" FontSize="12" FontWeight="Light" />
+          </TabItem.Header>
           <DockPanel Margin="0,8,0,0">
 
             <!-- Undo/Redo buttons -->
@@ -117,21 +123,25 @@
                      TextWrapping="Wrap"
                      FontFamily="{DynamicResource DefaultFont}"
                      FontSize="14"
+                     FontWeight="Light"
                      Background="{DynamicResource BgInput}"
                      BorderBrush="{DynamicResource BorderDefault}"
                      BorderThickness="1"
-                     CornerRadius="10"
+                     CornerRadius="{DynamicResource RadiusMd}"
                      Padding="12"
                      MinHeight="120" />
           </DockPanel>
         </TabItem>
 
         <!-- Tab 2: Raw -->
-        <TabItem Header="Raw">
+        <TabItem>
+          <TabItem.Header>
+            <TextBlock Text="Raw" FontSize="12" FontWeight="Light" />
+          </TabItem.Header>
           <Border Background="{DynamicResource BgLight}"
                   BorderBrush="{DynamicResource BorderDefault}"
                   BorderThickness="1"
-                  CornerRadius="10"
+                  CornerRadius="{DynamicResource RadiusMd}"
                   Margin="0,8,0,0"
                   Padding="12">
             <ScrollViewer>
@@ -145,11 +155,14 @@
         </TabItem>
 
         <!-- Tab 3: Diff -->
-        <TabItem Header="Diff">
+        <TabItem>
+          <TabItem.Header>
+            <TextBlock Text="Diff" FontSize="12" FontWeight="Light" />
+          </TabItem.Header>
           <Border Background="{DynamicResource BgPanel}"
                   BorderBrush="{DynamicResource BorderDefault}"
                   BorderThickness="1"
-                  CornerRadius="10"
+                  CornerRadius="{DynamicResource RadiusMd}"
                   Margin="0,8,0,0"
                   Padding="12">
             <ScrollViewer>

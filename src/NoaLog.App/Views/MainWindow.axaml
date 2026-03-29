@@ -26,14 +26,18 @@
                                         Grid.Column="0"
                                         VerticalAlignment="Center" />
 
-                <!-- Title — 細いウェイト -->
+                <!-- Title — ロゴタイプ -->
                 <TextBlock Grid.Column="1"
-                           Text="NoaLog"
-                           Foreground="{DynamicResource TextOnDark}"
-                           FontSize="{DynamicResource FontLg}"
-                           FontWeight="Light"
+                           FontSize="{DynamicResource FontXl}"
+                           FontWeight="Bold"
+                           FontStyle="Italic"
                            VerticalAlignment="Center"
-                           Margin="12,0,0,0" />
+                           ClipToBounds="False"
+                           Margin="8,0,4,0"
+                           Padding="0,0,4,0">
+                    <Run Text="Noa" Foreground="#128AFA" />
+                    <Run Text="Log" Foreground="#FFFFFF" />
+                </TextBlock>
 
                 <!-- Hotkey Display -->
                 <StackPanel Grid.Column="2"
@@ -262,5 +266,15 @@
 
         </Grid>
     </DockPanel>
+
+    <Window.Styles>
+        <!-- Settings button: hover で背景を明るく -->
+        <Style Selector="Button#SettingsButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2A3D66" />
+        </Style>
+        <Style Selector="Button#SettingsButton:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3A5080" />
+        </Style>
+    </Window.Styles>
 
 </Window>

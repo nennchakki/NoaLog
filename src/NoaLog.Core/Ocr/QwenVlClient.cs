@@ -9,8 +9,13 @@ namespace NoaLog.Core.Ocr;
 /// </summary>
 public class QwenVlClient : IOcrEngine, IDisposable
 {
-    private const string ModelName = "qwen3-vl:2b";
-    private const string Prompt = "Read all Japanese text in this image exactly as written. Output only the text, nothing else.";
+    private const string ModelName = "qwen3-vl:4b";
+    private const string Prompt =
+        "この画像の日本語テキストを正確に読み取ってください。\n" +
+        "ルビ（フリガナ）がある場合は、青空文庫形式で出力してください。\n" +
+        "例: 先生《せんせい》が教室《きょうしつ》に入《はい》った\n" +
+        "ルビがない漢字はそのまま出力してください。\n" +
+        "テキストのみ出力し、説明は不要です。";
     private const double FixedConfidence = 0.8;
 
     private readonly HttpClient _httpClient;
@@ -26,7 +31,7 @@ public class QwenVlClient : IOcrEngine, IDisposable
         _baseUrl = baseUrl.TrimEnd('/');
         _httpClient = new HttpClient
         {
-            Timeout = TimeSpan.FromSeconds(30),
+            Timeout = TimeSpan.FromSeconds(120),
         };
     }
 
@@ -46,7 +51,7 @@ public class QwenVlClient : IOcrEngine, IDisposable
                 foreach (var model in models.EnumerateArray())
                 {
                     if (model.TryGetProperty("name", out var name) &&
-                        name.GetString() == ModelName)
+                        (name.GetString()?.StartsWith(ModelName) ?? false))
                     {
                         _isReady = true;
                         return;

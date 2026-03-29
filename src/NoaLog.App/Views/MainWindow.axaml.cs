@@ -377,6 +377,10 @@ public partial class MainWindow : Window
 
     private void OnCaptureClick(object? sender, RoutedEventArgs e)
     {
+        // 領域が未設定の場合はキャプチャしない
+        if (_currentProfile == null || _currentProfile.BodyRect == null)
+            return;
+
         if (_haloIndicator != null)
             _haloIndicator.State = HaloState.Processing;
     }

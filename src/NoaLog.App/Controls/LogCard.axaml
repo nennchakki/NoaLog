@@ -20,9 +20,9 @@
 
     <Grid ColumnDefinitions="2,*">
 
-      <!-- 左端アイスブルー縦線アクセント -->
+      <!-- 左端ノア紫 縦線アクセント -->
       <Border Grid.Column="0"
-              Background="#7EC8E3"
+              Background="#8B7EC8"
               CornerRadius="4,0,0,4"
               Width="2" />
 

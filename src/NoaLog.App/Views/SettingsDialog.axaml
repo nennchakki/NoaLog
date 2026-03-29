@@ -6,6 +6,7 @@
         MinWidth="480" MinHeight="500"
         WindowStartupLocation="CenterOwner"
         CanResize="True"
+        Background="{DynamicResource BgLight}"
         FontFamily="{DynamicResource DefaultFont}">
 
     <DockPanel LastChildFill="True">
@@ -38,6 +39,7 @@
                         CornerRadius="{DynamicResource RadiusSm}"
                         Padding="16,8"
                         FontSize="{DynamicResource FontBase}"
+                        HorizontalContentAlignment="Center"
                         Cursor="Hand"
                         Click="OnEulaClick" />
                 <Button Grid.Column="2"
@@ -51,6 +53,7 @@
                         CornerRadius="{DynamicResource RadiusSm}"
                         Padding="16,8"
                         FontSize="{DynamicResource FontBase}"
+                        HorizontalContentAlignment="Center"
                         Cursor="Hand"
                         Click="OnCancelClick" />
                 <Button Grid.Column="4"
@@ -64,6 +67,7 @@
                         Padding="16,8"
                         FontSize="{DynamicResource FontBase}"
                         FontWeight="SemiBold"
+                        HorizontalContentAlignment="Center"
                         Cursor="Hand"
                         Click="OnSaveClick" />
             </Grid>

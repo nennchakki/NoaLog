@@ -20,13 +20,17 @@
   <SolidColorBrush x:Key="TextOnDark" Color="#F0F4F8" />      <!-- ダーク背景上 -->
   <SolidColorBrush x:Key="TextOnAccent" Color="#FFFFFF" />    <!-- アクセント背景上 -->
 
-  <!-- Accent: ノアの瞳色 アイスブルー -->
+  <!-- Accent: ミレニアム テーマカラー アイスブルー -->
   <SolidColorBrush x:Key="Accent" Color="#7EC8E3" />
   <SolidColorBrush x:Key="AccentLight" Color="#B8E0F0" />     <!-- ミレニアム淡い水色 -->
   <SolidColorBrush x:Key="AccentDark" Color="#5BB5D6" />
   <SolidColorBrush x:Key="AccentBg" Color="#E8F4FB" />        <!-- アクセント背景 -->
   <SolidColorBrush x:Key="AccentPressed" Color="#4AA3C4" />
   <SolidColorBrush x:Key="AccentSubtle" Color="#B8E0F0" />    <!-- サブアクセント -->
+
+  <!-- Noa: ノアの瞳色 紫 -->
+  <SolidColorBrush x:Key="NoaPurple" Color="#8B7EC8" />
+  <SolidColorBrush x:Key="NoaPurpleLight" Color="#B0A6DC" />  <!-- 淡い紫 -->
 
   <!-- Border Colors — 最小限、余白で区切る -->
   <SolidColorBrush x:Key="BorderDefault" Color="#E8ECF0" />
@@ -65,7 +69,7 @@
 
   <!-- ═══ Typography ═══ -->
   <!-- Noto Sans JP Light 基本、見出しのみ Regular -->
-  <FontFamily x:Key="DefaultFont">Noto Sans JP, Hiragino Sans, Yu Gothic UI, Segoe UI, avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
+  <FontFamily x:Key="DefaultFont">avares://NoaLog/Assets/Fonts#Noto Sans JP, Hiragino Sans, Yu Gothic UI, Segoe UI, avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
   <FontFamily x:Key="MonoFont">SF Mono, Consolas, Noto Sans Mono CJK JP, monospace</FontFamily>
 
   <!-- Font Sizes — 控えめ、情報密度を高く -->

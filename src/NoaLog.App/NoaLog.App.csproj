@@ -19,6 +19,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <AvaloniaResource Include="Assets\Fonts\NotoSansJP-Light.otf" />
+    <AvaloniaResource Include="Assets\Fonts\NotoSansJP-Regular.otf" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.*" />
     <PackageReference Include="Avalonia.Desktop" Version="11.*" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.*" />

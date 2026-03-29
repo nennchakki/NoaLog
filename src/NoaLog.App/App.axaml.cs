@@ -124,9 +124,9 @@ public partial class App : Application
         try
         {
             await OllamaManager!.StartServerAsync(CancellationToken.None);
-            if (!await OllamaManager.IsModelAvailableAsync("qwen3-vl:2b", CancellationToken.None))
+            if (!await OllamaManager.IsModelAvailableAsync("qwen3-vl:4b", CancellationToken.None))
             {
-                await OllamaManager.PullModelAsync("qwen3-vl:2b", null, CancellationToken.None);
+                await OllamaManager.PullModelAsync("qwen3-vl:4b", null, CancellationToken.None);
             }
             await OcrEngine!.InitializeAsync(CancellationToken.None);
         }

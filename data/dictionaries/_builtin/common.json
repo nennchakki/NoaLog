@@ -1,0 +1,7 @@
+{
+  "meta": { "game_id": "_common", "version": "1.0.0", "description": "Common OCR corrections" },
+  "entries": [
+    { "wrong": "\u2015", "correct": "\u30fc", "category": "symbol", "match_type": "exact" },
+    { "wrong": "\u301c", "correct": "\uff5e", "category": "symbol", "match_type": "exact" }
+  ]
+}

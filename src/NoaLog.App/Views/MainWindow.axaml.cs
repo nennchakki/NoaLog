@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using NoaLog.App.Controls;
 using NoaLog.Core.Models;
 using NoaLog.Core.Storage;
+using NoaLog.Core.Telemetry;
 
 namespace NoaLog.App.Views;
 
@@ -30,6 +31,7 @@ public partial class MainWindow : Window
     private SearchBar? _searchBar;
 
     private readonly SqliteStorage _storage;
+    private readonly CorrectionLogger? _correctionLogger;
     private List<Profile> _profiles = new();
     private Profile? _currentProfile;
     private List<LogEntry> _logEntries = new();
@@ -37,11 +39,12 @@ public partial class MainWindow : Window
     private LogEntry? _selectedEntry;
 
     // AXAMLローダー用パラメータなしコンストラクタ
-    public MainWindow() : this(App.Storage!) { }
+    public MainWindow() : this(App.Storage!, App.CorrectionLogger) { }
 
-    public MainWindow(SqliteStorage storage)
+    public MainWindow(SqliteStorage storage, CorrectionLogger? correctionLogger = null)
     {
         _storage = storage;
+        _correctionLogger = correctionLogger;
         InitializeComponent();
     }
 
@@ -201,6 +204,20 @@ public partial class MainWindow : Window
 
         if (changed)
         {
+            // 修正差分をテレメトリ用に記録
+            if (_correctionLogger != null)
+            {
+                if (currentEntry.EditedSpeakerName != _selectedEntry.EditedSpeakerName)
+                    _correctionLogger.LogCorrection(_selectedEntry, "speaker_name",
+                        _selectedEntry.SpeakerName, currentEntry.EditedSpeakerName ?? "");
+                if (currentEntry.EditedSpeakerOrg != _selectedEntry.EditedSpeakerOrg)
+                    _correctionLogger.LogCorrection(_selectedEntry, "speaker_org",
+                        _selectedEntry.SpeakerOrg, currentEntry.EditedSpeakerOrg ?? "");
+                if (currentEntry.EditedBodyText != _selectedEntry.EditedBodyText)
+                    _correctionLogger.LogCorrection(_selectedEntry, "body_text",
+                        _selectedEntry.BodyText, currentEntry.EditedBodyText ?? "");
+            }
+
             _storage.UpdateLogEntry(currentEntry);
 
             // LogCardの表示も更新

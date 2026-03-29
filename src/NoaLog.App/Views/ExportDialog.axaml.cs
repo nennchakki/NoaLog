@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
@@ -253,6 +254,9 @@ public partial class ExportDialog : Window
         await using var stream = await file.OpenWriteAsync();
         await using var writer = new StreamWriter(stream);
         await writer.WriteAsync(text);
+
+        // エクスポート完了後、バックグラウンドでテレメトリ送信
+        _ = Task.Run(() => App.AnonymousSender?.SendPendingAsync());
 
         Close(true);
     }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
+using NoaLog.Core.Dict;
 using NoaLog.Core.Models;
 
 namespace NoaLog.Core.Storage;
@@ -265,6 +266,133 @@ public class SqliteStorage
         cmd.Parameters.AddWithValue("@key", key);
         cmd.Parameters.AddWithValue("@value", value);
         cmd.Parameters.AddWithValue("@updatedAt", DateTime.UtcNow.ToString("o"));
+        cmd.ExecuteNonQuery();
+    }
+
+    // ─── User Dict CRUD ────────────────────────────────────────
+
+    public void InsertUserDictEntry(string gameId, string wrongText, string correctText, string category, string source)
+    {
+        using var connection = CreateConnection();
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            INSERT INTO user_dict_entries (game_id, wrong_text, correct_text, category, source, created_at)
+            VALUES (@gameId, @wrongText, @correctText, @category, @source, @createdAt);
+            """;
+        cmd.Parameters.AddWithValue("@gameId", gameId);
+        cmd.Parameters.AddWithValue("@wrongText", wrongText);
+        cmd.Parameters.AddWithValue("@correctText", correctText);
+        cmd.Parameters.AddWithValue("@category", category);
+        cmd.Parameters.AddWithValue("@source", source);
+        cmd.Parameters.AddWithValue("@createdAt", DateTime.UtcNow.ToString("o"));
+        cmd.ExecuteNonQuery();
+    }
+
+    public List<UserDictEntry> GetUserDictEntries(string? gameId)
+    {
+        using var connection = CreateConnection();
+        using var cmd = connection.CreateCommand();
+
+        if (gameId is null)
+        {
+            cmd.CommandText = "SELECT id, game_id, wrong_text, correct_text, category, source FROM user_dict_entries ORDER BY game_id, id;";
+        }
+        else
+        {
+            cmd.CommandText = "SELECT id, game_id, wrong_text, correct_text, category, source FROM user_dict_entries WHERE game_id = @gameId ORDER BY id;";
+            cmd.Parameters.AddWithValue("@gameId", gameId);
+        }
+
+        using var reader = cmd.ExecuteReader();
+        var entries = new List<UserDictEntry>();
+        while (reader.Read())
+        {
+            entries.Add(new UserDictEntry(
+                Id: reader.GetInt32(reader.GetOrdinal("id")),
+                GameId: reader.GetString(reader.GetOrdinal("game_id")),
+                WrongText: reader.GetString(reader.GetOrdinal("wrong_text")),
+                CorrectText: reader.GetString(reader.GetOrdinal("correct_text")),
+                Category: reader.GetString(reader.GetOrdinal("category")),
+                Source: reader.GetString(reader.GetOrdinal("source"))
+            ));
+        }
+        return entries;
+    }
+
+    public void DeleteUserDictEntry(int id)
+    {
+        using var connection = CreateConnection();
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "DELETE FROM user_dict_entries WHERE id = @id;";
+        cmd.Parameters.AddWithValue("@id", id);
+        cmd.ExecuteNonQuery();
+    }
+
+    // ─── CorrectionRecord CRUD ─────────────────────────────────────
+
+    public void InsertCorrectionRecord(CorrectionRecord record)
+    {
+        using var connection = CreateConnection();
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            INSERT INTO correction_log (
+                log_entry_id, field_name, original_value, corrected_value, ocr_engine, game_id
+            ) VALUES (
+                @logEntryId, @fieldName, @originalValue, @correctedValue, @ocrEngine, @gameId
+            );
+            """;
+        cmd.Parameters.AddWithValue("@logEntryId", record.LogEntryId);
+        cmd.Parameters.AddWithValue("@fieldName", record.FieldName);
+        cmd.Parameters.AddWithValue("@originalValue", record.OriginalValue);
+        cmd.Parameters.AddWithValue("@correctedValue", record.CorrectedValue);
+        cmd.Parameters.AddWithValue("@ocrEngine", record.OcrEngine);
+        cmd.Parameters.AddWithValue("@gameId", (object?)record.GameId ?? DBNull.Value);
+        cmd.ExecuteNonQuery();
+    }
+
+    public List<CorrectionRecord> GetUnsentCorrectionRecords()
+    {
+        using var connection = CreateConnection();
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT * FROM correction_log WHERE is_sent = 0;";
+
+        using var reader = cmd.ExecuteReader();
+        var records = new List<CorrectionRecord>();
+        while (reader.Read())
+        {
+            records.Add(new CorrectionRecord
+            {
+                Id = reader.GetInt32(reader.GetOrdinal("id")),
+                LogEntryId = reader.GetString(reader.GetOrdinal("log_entry_id")),
+                FieldName = reader.GetString(reader.GetOrdinal("field_name")),
+                OriginalValue = reader.GetString(reader.GetOrdinal("original_value")),
+                CorrectedValue = reader.GetString(reader.GetOrdinal("corrected_value")),
+                OcrEngine = reader.GetString(reader.GetOrdinal("ocr_engine")),
+                GameId = GetNullableString(reader, "game_id"),
+                CreatedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("created_at"))),
+                IsSent = reader.GetInt64(reader.GetOrdinal("is_sent")) != 0,
+            });
+        }
+        return records;
+    }
+
+    public void MarkCorrectionRecordsSent(IEnumerable<int> ids)
+    {
+        using var connection = CreateConnection();
+        using var cmd = connection.CreateCommand();
+
+        var idList = ids.ToList();
+        if (idList.Count == 0) return;
+
+        var paramNames = new List<string>();
+        for (var i = 0; i < idList.Count; i++)
+        {
+            var paramName = $"@id{i}";
+            paramNames.Add(paramName);
+            cmd.Parameters.AddWithValue(paramName, idList[i]);
+        }
+
+        cmd.CommandText = $"UPDATE correction_log SET is_sent = 1 WHERE id IN ({string.Join(", ", paramNames)});";
         cmd.ExecuteNonQuery();
     }
 

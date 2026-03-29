@@ -1,6 +1,7 @@
 using NoaLog.Core.Capture;
 using NoaLog.Core.Models;
 using NoaLog.Core.Ocr;
+using NoaLog.Core.PostProcess;
 using NoaLog.Core.Storage;
 
 namespace NoaLog.Core.Pipeline;
@@ -11,18 +12,20 @@ public class CaptureWorker
     private readonly IScreenCapture _capture;
     private readonly IOcrEngine _ocr;
     private readonly SqliteStorage _storage;
+    private readonly DictProcessor? _dictProcessor;
     private CancellationTokenSource? _cts;
     private Task? _workerTask;
 
     // Event for UI notification when a new log entry is created
     public event EventHandler<LogEntry>? EntryCreated;
 
-    public CaptureWorker(CaptureQueue queue, IScreenCapture capture, IOcrEngine ocr, SqliteStorage storage)
+    public CaptureWorker(CaptureQueue queue, IScreenCapture capture, IOcrEngine ocr, SqliteStorage storage, DictProcessor? dictProcessor = null)
     {
         _queue = queue;
         _capture = capture;
         _ocr = ocr;
         _storage = storage;
+        _dictProcessor = dictProcessor;
     }
 
     public void Start()
@@ -93,10 +96,13 @@ public class CaptureWorker
             OcrEngine = _ocr.EngineName,
         };
 
-        // 5. Save to storage
+        // 5. Post-process OCR results via dictionary
+        _dictProcessor?.ProcessEntry(entry);
+
+        // 6. Save to storage
         _storage.InsertLogEntry(entry);
 
-        // 6. Notify UI
+        // 7. Notify UI
         EntryCreated?.Invoke(this, entry);
     }
 }

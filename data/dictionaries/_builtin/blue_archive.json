@@ -1,0 +1,17 @@
+{
+  "meta": { "game_id": "blue_archive", "version": "1.0.0", "description": "Blue Archive character names" },
+  "entries": [
+    { "wrong": "\u30b1\u30d8\u30ca", "correct": "\u30b2\u30d8\u30ca", "category": "proper_noun", "match_type": "exact" },
+    { "wrong": "\u30c8\u30ea\u30cb\u30c6\u30a3\u30fc", "correct": "\u30c8\u30ea\u30cb\u30c6\u30a3", "category": "proper_noun", "match_type": "exact" },
+    { "wrong": "\u30df\u30ec\u30cb\u30a2\u30e0", "correct": "\u30df\u30ec\u30cb\u30a2\u30e0", "category": "proper_noun", "match_type": "exact" },
+    { "wrong": "\u30a2\u30d3\u30c8\u30b9", "correct": "\u30a2\u30d3\u30c9\u30b9", "category": "proper_noun", "match_type": "exact" },
+    { "wrong": "\u30b7\u30e4\u30f3\u30cf\u30a4\u30d1\u30f3", "correct": "\u5c71\u6d77\u7d4c", "category": "proper_noun", "match_type": "exact" },
+    { "wrong": "\u30f4\u30a1\u30eb\u30ad\u30e5\u30fc\u30ec", "correct": "\u30f4\u30a1\u30eb\u30ad\u30e5\u30fc\u30ec", "category": "proper_noun", "match_type": "exact" },
+    { "wrong": "\u30a2\u30ea\u30a6\u30b9", "correct": "\u30a2\u30ea\u30a6\u30b9", "category": "proper_noun", "match_type": "exact" },
+    { "wrong": "\u30db\u30b7\u30ce", "correct": "\u30db\u30b7\u30ce", "category": "character", "match_type": "exact" },
+    { "wrong": "\u30b7\u30ed\u30b3", "correct": "\u30b7\u30ed\u30b3", "category": "character", "match_type": "exact" },
+    { "wrong": "\u30bb\u30ea\u30ab", "correct": "\u30bb\u30ea\u30ab", "category": "character", "match_type": "exact" },
+    { "wrong": "\u30a2\u30e4\u30cd", "correct": "\u30a2\u30e4\u30cd", "category": "character", "match_type": "exact" },
+    { "wrong": "\u30ce\u30ce\u30df", "correct": "\u30ce\u30ce\u30df", "category": "character", "match_type": "exact" }
+  ]
+}

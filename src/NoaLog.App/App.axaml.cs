@@ -36,6 +36,9 @@ public partial class App : Application
     public static CorrectionLogger? CorrectionLogger { get; private set; }
     public static AnonymousSender? AnonymousSender { get; private set; }
 
+    /// <summary>OCRエンジンが切り替わった時に発火するイベント</summary>
+    public static event EventHandler? OcrEngineChanged;
+
 #if PRO
     public static OllamaManager? OllamaManager { get; private set; }
 #endif
@@ -72,12 +75,23 @@ public partial class App : Application
         ScreenCapture = new WindowsScreenCapture();
         HotkeyManager = new WindowsHotkeyManager();
 #else
-        ScreenCapture = new StubScreenCapture();
-        HotkeyManager = new StubHotkeyManager();
+        ScreenCapture = new MacScreenCapture();
+        HotkeyManager = new MacHotkeyManager();
 #endif
 
         // 6. OCRエンジン
         OcrEngine = CreateOcrEngine(noalogDir);
+
+        // 6b. OCRエンジン初期化（バックグラウンド）
+        // Pro版Qwenの場合はInitializeProOcrAsyncで既に呼ばれる
+        if (OcrEngine is Core.Ocr.MangaOcrOnnx)
+        {
+            _ = Task.Run(async () =>
+            {
+                try { await OcrEngine.InitializeAsync(); }
+                catch { /* モデル未配置時は無視 */ }
+            });
+        }
 
         // 7. キャプチャパイプライン
         CaptureQueue = new CaptureQueue();
@@ -141,39 +155,65 @@ public partial class App : Application
     /// </summary>
     public static async Task SwitchOcrEngineAsync(string engineName)
     {
-        if (CaptureWorker == null || Storage == null) return;
+        if (Storage == null) return;
 
-        // 現在のワーカーを停止
+        // 1. 旧ワーカー停止
         CaptureQueue?.Complete();
 
-        // 旧エンジンをシャットダウン
+        // 2. 旧エンジンシャットダウン
         if (OcrEngine != null)
             await OcrEngine.ShutdownAsync();
 
-        // 新エンジン作成
+        // 3. 新エンジン作成
         var appDataDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var noalogDir = Path.Combine(appDataDir, "NoaLog");
         OcrEngine = CreateOcrEngine(noalogDir);
 
-        // 新パイプライン再構築
+        // 4. 新エンジン初期化（Qwenは InitializeProOcrAsync 内で呼ばれるが、manga-ocrはここで）
+        if (OcrEngine is MangaOcrOnnx)
+        {
+            try { await OcrEngine.InitializeAsync(); }
+            catch { /* モデル未配置時は無視 */ }
+        }
+
+        // 5. 新パイプライン再構築
         CaptureQueue = new CaptureQueue();
         CaptureWorker = new CaptureWorker(CaptureQueue, ScreenCapture!, OcrEngine, Storage, DictProcessor);
         CaptureWorker.Start();
+
+        // 6. UI通知
+        OcrEngineChanged?.Invoke(null, EventArgs.Empty);
     }
 #endif
 
     private void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs e)
     {
-        CaptureQueue?.Complete();
+        // 全サービスをベストエフォートで停止し、強制終了
+        try
+        {
+            CaptureWorker?.StopAsync().Wait(TimeSpan.FromSeconds(2));
+        }
+        catch { }
 
-        if (OcrEngine is IDisposable disposableEngine)
-            disposableEngine.Dispose();
+        try
+        {
+            if (OcrEngine is IDisposable disposableEngine)
+                disposableEngine.Dispose();
+        }
+        catch { }
 
-        if (HotkeyManager is IDisposable disposableHotkey)
-            disposableHotkey.Dispose();
+        try
+        {
+            if (HotkeyManager is IDisposable disposableHotkey)
+                disposableHotkey.Dispose();
+        }
+        catch { }
 
 #if PRO
-        OllamaManager?.Dispose();
+        try { OllamaManager?.Dispose(); } catch { }
 #endif
+
+        // バックグラウンドスレッドが残ってもプロセスを確実に終了
+        Environment.Exit(0);
     }
 }

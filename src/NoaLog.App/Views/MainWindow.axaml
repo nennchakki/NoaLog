@@ -121,7 +121,7 @@
                             Orientation="Horizontal"
                             Spacing="12">
                     <TextBlock Name="OcrEngineLabel"
-                               Text="manga_ocr"
+                               Text=""
                                Foreground="{DynamicResource TextTertiary}"
                                FontSize="{DynamicResource FontXs}"
                                FontWeight="Light"
@@ -213,6 +213,37 @@
                                                VerticalAlignment="Bottom"
                                                Margin="0,0,0,3" />
                                 </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Engine Status Panel -->
+                        <Border Background="{DynamicResource BgLight}"
+                                CornerRadius="{DynamicResource RadiusLg}"
+                                Padding="14">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="sectionTitle" Text="ENGINE" />
+                                <StackPanel Orientation="Horizontal" Spacing="6"
+                                            Margin="0,6,0,0">
+                                    <Ellipse Name="EngineStatusDot"
+                                             Width="8" Height="8"
+                                             Fill="{DynamicResource TextTertiary}"
+                                             VerticalAlignment="Center" />
+                                    <TextBlock Name="EngineNameLabel"
+                                               Text=""
+                                               FontSize="{DynamicResource FontBase}"
+                                               FontWeight="Light"
+                                               Foreground="{DynamicResource TextPrimary}" />
+                                </StackPanel>
+                                <TextBlock Name="EngineStatusLabel"
+                                           Text=""
+                                           FontSize="{DynamicResource FontXs}"
+                                           FontWeight="Light"
+                                           Foreground="{DynamicResource TextSecondary}" />
+                                <TextBlock Name="EngineLastTimeLabel"
+                                           Text=""
+                                           FontSize="{DynamicResource FontXs}"
+                                           FontWeight="Light"
+                                           Foreground="{DynamicResource TextTertiary}" />
                             </StackPanel>
                         </Border>
                     </StackPanel>

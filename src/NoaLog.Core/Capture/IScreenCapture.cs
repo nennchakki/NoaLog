@@ -5,7 +5,7 @@ namespace NoaLog.Core.Capture;
 /// <summary>
 /// スクリーンキャプチャのプラットフォーム抽象化。
 /// Windows: Win32 BitBlt / DXGI
-/// macOS: 開発時はスタブ実装
+/// macOS: screencaptureコマンド
 /// </summary>
 public interface IScreenCapture
 {

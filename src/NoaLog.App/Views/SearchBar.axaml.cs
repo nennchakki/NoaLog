@@ -163,35 +163,6 @@ public partial class SearchBar : UserControl
 
         IsVisible = true;
 
-        // スライドインアニメーション
-        var translateTransform = new TranslateTransform(0, -30);
-        RenderTransform = translateTransform;
-        Opacity = 0;
-
-        var slideIn = new Animation
-        {
-            Duration = TimeSpan.FromMilliseconds(200),
-            Easing = new CubicEaseOut(),
-            Children =
-            {
-                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(TranslateTransform.YProperty, -30.0) } },
-                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(TranslateTransform.YProperty, 0.0) } },
-            }
-        };
-        slideIn.RunAsync(this);
-
-        var fadeIn = new Animation
-        {
-            Duration = TimeSpan.FromMilliseconds(200),
-            Easing = new CubicEaseOut(),
-            Children =
-            {
-                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(OpacityProperty, 0.0) } },
-                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(OpacityProperty, 1.0) } },
-            }
-        };
-        fadeIn.RunAsync(this);
-
         // 検索フィールドにフォーカスを設定し、テキストを全選択
         _searchInput?.Focus();
         _searchInput?.SelectAll();
@@ -200,37 +171,9 @@ public partial class SearchBar : UserControl
     /// <summary>
     /// 検索バーを非表示にし、状態をリセットする。
     /// </summary>
-    public async void Hide()
+    public void Hide()
     {
-        var slideOut = new Animation
-        {
-            Duration = TimeSpan.FromMilliseconds(200),
-            Easing = new CubicEaseIn(),
-            FillMode = FillMode.Forward,
-            Children =
-            {
-                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(TranslateTransform.YProperty, 0.0) } },
-                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(TranslateTransform.YProperty, -30.0) } },
-            }
-        };
-        var fadeOut = new Animation
-        {
-            Duration = TimeSpan.FromMilliseconds(200),
-            Easing = new CubicEaseIn(),
-            FillMode = FillMode.Forward,
-            Children =
-            {
-                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(OpacityProperty, 1.0) } },
-                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(OpacityProperty, 0.0) } },
-            }
-        };
-
-        _ = slideOut.RunAsync(this);
-        await fadeOut.RunAsync(this);
-
         IsVisible = false;
-        Opacity = 1; // リセット
-        RenderTransform = null;
 
         _matchIndices.Clear();
         _currentMatchIndex = -1;

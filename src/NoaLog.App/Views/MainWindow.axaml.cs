@@ -1,13 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Threading;
 using NoaLog.App.Controls;
 using NoaLog.Core.Models;
+using NoaLog.Core.Pipeline;
 using NoaLog.Core.Storage;
 using NoaLog.Core.Telemetry;
 
@@ -29,6 +34,14 @@ public partial class MainWindow : Window
     private DetailPanel? _detailPanel;
     private CopyPanel? _copyPanel;
     private SearchBar? _searchBar;
+
+    // Engineパネル（左ペイン）+ ステータスバー
+    private Ellipse? _engineStatusDot;
+    private TextBlock? _engineNameLabel;
+    private TextBlock? _engineStatusLabel;
+    private TextBlock? _engineLastTimeLabel;
+    private TextBlock? _ocrEngineLabel;
+    private DispatcherTimer? _engineCheckTimer;
 
     private readonly SqliteStorage _storage;
     private readonly CorrectionLogger? _correctionLogger;
@@ -62,6 +75,41 @@ public partial class MainWindow : Window
         _statCount = this.FindControl<TextBlock>("StatCount");
         _entryCountLabel = this.FindControl<TextBlock>("EntryCountLabel");
         _lastCaptureLabel = this.FindControl<TextBlock>("LastCaptureLabel");
+
+        // OCRエンジン表示
+        _ocrEngineLabel = this.FindControl<TextBlock>("OcrEngineLabel");
+
+        // Engineパネル
+        _engineStatusDot = this.FindControl<Ellipse>("EngineStatusDot");
+        _engineNameLabel = this.FindControl<TextBlock>("EngineNameLabel");
+        _engineStatusLabel = this.FindControl<TextBlock>("EngineStatusLabel");
+        _engineLastTimeLabel = this.FindControl<TextBlock>("EngineLastTimeLabel");
+        UpdateEnginePanel();
+
+        // エンジン初期化は非同期なので定期チェック
+        _engineCheckTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _engineCheckTimer.Tick += (_, _) =>
+        {
+            UpdateEnginePanel();
+            if (App.OcrEngine?.IsReady == true)
+                _engineCheckTimer.Stop();
+        };
+        _engineCheckTimer.Start();
+
+        // OCRエンジン切替イベント購読
+        App.OcrEngineChanged += OnOcrEngineChanged;
+
+        // CaptureWorkerのエントリ完了イベント購読
+        if (App.CaptureWorker != null)
+        {
+            App.CaptureWorker.EntryCreated += OnCaptureEntryCreated;
+            App.CaptureWorker.ProcessingFailed += (_, _) =>
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (_haloIndicator != null)
+                        _haloIndicator.State = HaloState.Failed;
+                });
+        }
 
         // DetailPanel・CopyPanel・SearchBarは名前で検索
         _detailPanel = this.FindControl<DetailPanel>("DetailPanel");
@@ -289,6 +337,10 @@ public partial class MainWindow : Window
                     e.Handled = true;
                     _searchBar?.Show(true);
                     break;
+                case Key.L:
+                    e.Handled = true;
+                    OnCaptureClick(null, e);
+                    break;
             }
         }
     }
@@ -302,7 +354,16 @@ public partial class MainWindow : Window
 
     private void OnRegionsSelected(object? sender, RegionsSelectedEventArgs e)
     {
-        if (_currentProfile == null) return;
+        Console.Error.WriteLine($"[Regions] OnRegionsSelected called: Header={e.HeaderRect}, Body={e.BodyRect}, Narrator={e.NarratorRect}");
+
+        // プロファイルがなければ自動作成
+        if (_currentProfile == null)
+        {
+            Console.Error.WriteLine("[Regions] No profile — creating default");
+            _currentProfile = new Profile { Name = "Default" };
+            _storage.InsertProfile(_currentProfile);
+            LoadProfiles();
+        }
 
         if (e.HeaderRect is { } hr)
             _currentProfile.HeaderRect = new Core.Models.Rect((int)hr.X, (int)hr.Y, (int)hr.Width, (int)hr.Height);
@@ -310,6 +371,8 @@ public partial class MainWindow : Window
             _currentProfile.BodyRect = new Core.Models.Rect((int)br.X, (int)br.Y, (int)br.Width, (int)br.Height);
         if (e.NarratorRect is { } nr)
             _currentProfile.NarratorRect = new Core.Models.Rect((int)nr.X, (int)nr.Y, (int)nr.Width, (int)nr.Height);
+
+        Console.Error.WriteLine($"[Regions] Saved to profile: BodyRect={_currentProfile.BodyRect}");
 
         // プロファイルの領域をDBに保存
         _storage.UpdateProfile(_currentProfile);
@@ -375,14 +438,103 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnCaptureClick(object? sender, RoutedEventArgs e)
+    private async void OnCaptureClick(object? sender, RoutedEventArgs e)
     {
-        // 領域が未設定の場合はキャプチャしない
+        Console.Error.WriteLine($"[Capture] Profile={_currentProfile?.Name}, BodyRect={_currentProfile?.BodyRect}, Engine={App.OcrEngine?.EngineName}, IsReady={App.OcrEngine?.IsReady}");
+
+        // 領域が未設定の場合
         if (_currentProfile == null || _currentProfile.BodyRect == null)
+        {
+            Console.Error.WriteLine("[Capture] No profile or body rect — aborting");
+            if (_haloIndicator != null)
+                _haloIndicator.State = HaloState.Failed;
             return;
+        }
+        if (App.CaptureQueue == null) return;
+
+        // エンジン未準備
+        if (App.OcrEngine == null || !App.OcrEngine.IsReady)
+        {
+            Console.Error.WriteLine("[Capture] Engine not ready — aborting");
+            if (_haloIndicator != null)
+                _haloIndicator.State = HaloState.Failed;
+            return;
+        }
 
         if (_haloIndicator != null)
             _haloIndicator.State = HaloState.Processing;
+
+        Console.Error.WriteLine($"[Capture] Enqueueing capture request for profile {_currentProfile.Id}");
+
+        var request = new CaptureRequest(
+            _currentProfile.Id,
+            _currentProfile.HeaderRect ?? new Core.Models.Rect(0, 0, 0, 0),
+            _currentProfile.BodyRect,
+            _currentProfile.NarratorRect
+        );
+        await App.CaptureQueue.EnqueueAsync(request);
+    }
+
+    private void OnCaptureEntryCreated(object? sender, LogEntry entry)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_haloIndicator != null)
+                _haloIndicator.State = HaloState.Success;
+
+            _logEntries.Add(entry);
+            RebuildLogCards();
+            UpdateStats();
+
+            // 推論時間を表示（エントリのタイムスタンプから概算）
+            if (_engineLastTimeLabel != null)
+                _engineLastTimeLabel.Text = $"Last: {DateTime.Now:HH:mm:ss}";
+        });
+    }
+
+    private void UpdateEnginePanel()
+    {
+        var engine = App.OcrEngine;
+        if (engine == null) return;
+
+        if (_engineNameLabel != null)
+            _engineNameLabel.Text = engine.EngineName;
+
+        if (_engineStatusLabel != null)
+            _engineStatusLabel.Text = engine.IsReady ? "Ready" : "Not Ready";
+
+        if (_engineStatusDot != null)
+            _engineStatusDot.Fill = engine.IsReady
+                ? new SolidColorBrush(Color.Parse("#7EC8A0"))
+                : new SolidColorBrush(Color.Parse("#D4A0A0"));
+
+        // ステータスバーのエンジン名も同期
+        if (_ocrEngineLabel != null)
+            _ocrEngineLabel.Text = engine.EngineName;
+    }
+
+    private void OnOcrEngineChanged(object? sender, EventArgs e)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            // ENGINEパネル + ステータスバー更新
+            UpdateEnginePanel();
+
+            // CaptureWorkerの再購読（新ワーカーに切り替わっているため）
+            if (App.CaptureWorker != null)
+            {
+                App.CaptureWorker.EntryCreated += OnCaptureEntryCreated;
+                App.CaptureWorker.ProcessingFailed += (_, _) =>
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (_haloIndicator != null)
+                            _haloIndicator.State = HaloState.Failed;
+                    });
+            }
+
+            // 初期化待ちタイマー再開
+            _engineCheckTimer?.Start();
+        });
     }
 
     // ── 検索・置換 ──

@@ -11,7 +11,7 @@ public class QwenVlClient : IOcrEngine, IDisposable
 {
     private const string ModelName = "qwen3-vl:4b";
     private const string Prompt =
-        "この画像の日本語テキストを正確に読み取ってください。\n" +
+        "/no_think この画像の日本語テキストを正確に読み取ってください。\n" +
         "ルビ（フリガナ）がある場合は、青空文庫形式で出力してください。\n" +
         "例: 先生《せんせい》が教室《きょうしつ》に入《はい》った\n" +
         "ルビがない漢字はそのまま出力してください。\n" +
@@ -72,6 +72,8 @@ public class QwenVlClient : IOcrEngine, IDisposable
 
         try
         {
+            Console.Error.WriteLine($"[QwenVL] RecognizeAsync: imageData={imageData.Length} bytes, model={ModelName}");
+
             var base64Image = Convert.ToBase64String(imageData);
 
             var requestBody = JsonSerializer.Serialize(new
@@ -82,6 +84,8 @@ public class QwenVlClient : IOcrEngine, IDisposable
                 stream = false,
                 options = new { temperature = 0.0 },
             });
+
+            Console.Error.WriteLine($"[QwenVL] Sending to {_baseUrl}/api/generate ...");
 
             using var content = new StringContent(requestBody, System.Text.Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync(
@@ -95,10 +99,13 @@ public class QwenVlClient : IOcrEngine, IDisposable
                 ? responseProp.GetString()?.Trim() ?? ""
                 : "";
 
+            Console.Error.WriteLine($"[QwenVL] Result: '{text}'");
+
             return new OcrResult(text, FixedConfidence);
         }
-        catch
+        catch (Exception ex)
         {
+            Console.Error.WriteLine($"[QwenVL] Error: {ex.Message}");
             return new OcrResult("", 0.0);
         }
     }

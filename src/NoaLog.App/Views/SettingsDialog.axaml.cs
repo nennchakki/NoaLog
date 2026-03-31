@@ -175,6 +175,15 @@ public partial class SettingsDialog : Window
 
             var telemetryToggle = this.FindControl<ToggleSwitch>("TelemetryToggle");
             _storage.SetSetting("telemetry.enabled", telemetryToggle?.IsChecked?.ToString() ?? "False");
+
+#if PRO
+            // エンジンが変わった場合はランタイム切替
+            var currentEngine = App.OcrEngine?.EngineName == "qwen_vl" ? "Qwen3-VL" : "manga-ocr";
+            if (ocrEngine != currentEngine)
+            {
+                _ = App.SwitchOcrEngineAsync(ocrEngine);
+            }
+#endif
         }
 
         Close(true);

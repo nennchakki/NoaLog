@@ -6,6 +6,7 @@
         MinWidth="420" MinHeight="400"
         WindowStartupLocation="CenterOwner"
         CanResize="True"
+        Background="{DynamicResource BgLight}"
         FontFamily="{DynamicResource DefaultFont}">
 
     <DockPanel LastChildFill="True">

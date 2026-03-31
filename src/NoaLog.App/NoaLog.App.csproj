@@ -23,6 +23,12 @@
     <AvaloniaResource Include="Assets\Fonts\NotoSansJP-Regular.otf" />
   </ItemGroup>
 
+  <!-- モデル・辞書ファイルを出力ディレクトリにコピー -->
+  <ItemGroup>
+    <Content Include="..\..\data\models\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="data\models" />
+    <Content Include="..\..\data\dictionaries\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="data\dictionaries" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.*" />
     <PackageReference Include="Avalonia.Desktop" Version="11.*" />

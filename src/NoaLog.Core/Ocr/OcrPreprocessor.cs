@@ -22,6 +22,12 @@ public static class OcrPreprocessor
     {
         using var image = Image.Load<Rgb24>(imageData);
 
+        // 暗い背景（ゲームUI等）を検出して反転 → 白背景黒文字にする
+        if (IsDarkBackground(image))
+        {
+            image.Mutate(ctx => ctx.Invert());
+        }
+
         // Calculate scale to fit within 224x224 while maintaining aspect ratio
         float scale = Math.Min(
             (float)ImageSize / image.Width,
@@ -71,5 +77,33 @@ public static class OcrPreprocessor
         });
 
         return tensor;
+    }
+
+    /// <summary>
+    /// 画像の平均輝度を計算し、暗い背景かどうかを判定する。
+    /// 平均輝度が128未満なら暗い背景と判定。
+    /// </summary>
+    private static bool IsDarkBackground(Image<Rgb24> image)
+    {
+        long totalBrightness = 0;
+        int pixelCount = 0;
+
+        // サンプリング: 全ピクセルは重いので、4ピクセルおきにチェック
+        image.ProcessPixelRows(accessor =>
+        {
+            for (int y = 0; y < accessor.Height; y += 4)
+            {
+                var row = accessor.GetRowSpan(y);
+                for (int x = 0; x < accessor.Width; x += 4)
+                {
+                    var p = row[x];
+                    totalBrightness += (p.R + p.G + p.B) / 3;
+                    pixelCount++;
+                }
+            }
+        });
+
+        if (pixelCount == 0) return false;
+        return totalBrightness / pixelCount < 128;
     }
 }

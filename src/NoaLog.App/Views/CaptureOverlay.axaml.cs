@@ -1,9 +1,12 @@
 using System;
 using System.Globalization;
+using System.IO;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 
 namespace NoaLog.App.Views;
@@ -47,6 +50,9 @@ public partial class CaptureOverlay : Window
     private double _blinkPhase;
     private double _selectionOpacity = 1.0;
 
+    // Screenshot background
+    private Bitmap? _screenshotBitmap;
+
     // Confirm flash animation fields
     private DispatcherTimer? _confirmFlashTimer;
     private double _confirmFlashProgress;
@@ -89,22 +95,50 @@ public partial class CaptureOverlay : Window
     // Lifecycle
     // ------------------------------------------------------------------
 
-    protected override void OnOpened(EventArgs e)
+    protected override async void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
         var screen = Screens.Primary;
         if (screen != null)
         {
             var scaling = screen.Scaling;
+            // WorkingArea を使用（メニューバー・Dockを除いた領域）
+            var workArea = screen.WorkingArea;
             Position = new PixelPoint(
-                (int)screen.Bounds.X,
-                (int)screen.Bounds.Y);
-            Width = screen.Bounds.Width / scaling;
-            Height = screen.Bounds.Height / scaling;
+                (int)(workArea.X / scaling),
+                (int)(workArea.Y / scaling));
+            Width = workArea.Width / scaling;
+            Height = workArea.Height / scaling;
         }
 
+        // オーバーレイを一時非表示にしてスクリーンショットを撮る
+        Opacity = 0;
+        await Task.Delay(200);
+
+        var capture = App.ScreenCapture;
+        if (capture != null && screen != null)
+        {
+            try
+            {
+                // WorkingArea の領域だけキャプチャ（メニューバー除外）
+                var workArea = screen.WorkingArea;
+                var rect = new NoaLog.Core.Models.Rect(
+                    (int)workArea.X, (int)workArea.Y,
+                    (int)workArea.Width, (int)workArea.Height);
+                var imageData = await capture.CaptureRegionAsync(rect);
+                if (imageData.Length > 0)
+                {
+                    using var ms = new MemoryStream(imageData);
+                    _screenshotBitmap = new Bitmap(ms);
+                }
+            }
+            catch { /* スクリーンショット失敗時は背景なしで続行 */ }
+        }
+
+        Opacity = 1;
         Activate();
         Focus();
+        InvalidateVisual();
     }
 
     // ------------------------------------------------------------------
@@ -172,8 +206,10 @@ public partial class CaptureOverlay : Window
             case Key.Escape:
                 Cancel();
                 break;
-            case Key.S when _currentStage == SelectionStage.Narrator:
-                SkipNarrator();
+            case Key.S:
+                // Sキーでスキップ（Narrator段階ならスキップ完了、それ以外は無視）
+                if (_currentStage == SelectionStage.Narrator)
+                    SkipNarrator();
                 break;
         }
     }
@@ -184,6 +220,7 @@ public partial class CaptureOverlay : Window
 
     private void ConfirmStage()
     {
+        Console.Error.WriteLine($"[Overlay] ConfirmStage: stage={_currentStage}, currentRect={_currentRect}");
         if (!_currentRect.HasValue) return;
 
         StopSelectionBlink();
@@ -221,6 +258,7 @@ public partial class CaptureOverlay : Window
 
     private void CompleteSelection()
     {
+        Console.Error.WriteLine($"[Overlay] CompleteSelection: Header={_headerRect}, Body={_bodyRect}, Narrator={_narratorRect}");
         StopSelectionBlink();
         StopConfirmFlash();
         RegionsSelected?.Invoke(this, new RegionsSelectedEventArgs
@@ -240,6 +278,13 @@ public partial class CaptureOverlay : Window
         Close();
     }
 
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+        _screenshotBitmap?.Dispose();
+        _screenshotBitmap = null;
+    }
+
     // ------------------------------------------------------------------
     // Rendering
     // ------------------------------------------------------------------
@@ -249,6 +294,13 @@ public partial class CaptureOverlay : Window
         base.Render(context);
 
         var bounds = new Rect(0, 0, Bounds.Width, Bounds.Height);
+
+        // 0. スクリーンショット背景を描画
+        if (_screenshotBitmap != null)
+        {
+            context.DrawImage(_screenshotBitmap,
+                new Rect(0, 0, Bounds.Width, Bounds.Height));
+        }
 
         // 1. Semi-transparent overlay background
         context.DrawRectangle(new SolidColorBrush(OverlayBgColor), null, bounds);

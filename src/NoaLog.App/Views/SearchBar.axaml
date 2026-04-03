@@ -15,10 +15,24 @@
     <StackPanel Spacing="6">
 
       <!-- 検索行 -->
-      <Grid ColumnDefinitions="*,Auto">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+
+        <!-- 置換展開トグル矢印 -->
+        <Button Name="ExpandReplaceButton"
+                Grid.Column="0"
+                Content="▶"
+                FontSize="10"
+                Foreground="{DynamicResource TextSecondary}"
+                Background="Transparent"
+                BorderThickness="0"
+                Padding="4,4"
+                Width="24" Height="30"
+                VerticalAlignment="Center"
+                ToolTip.Tip="置換を表示"
+                Click="OnExpandReplaceClick" />
 
         <!-- 検索入力 + 正規表現トグル -->
-        <StackPanel Orientation="Horizontal" Spacing="6">
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
 
           <!-- 検索テキストボックス -->
           <TextBox Name="SearchInput"
@@ -91,7 +105,7 @@
 
         <!-- 閉じるボタン -->
         <Button Name="CloseButton"
-                Grid.Column="1"
+                Grid.Column="2"
                 Content="&#x2715;"
                 FontSize="{DynamicResource FontSm}"
                 Foreground="{DynamicResource TextSecondary}"
@@ -105,10 +119,11 @@
 
       </Grid>
 
-      <!-- 置換行（Ctrl+H時のみ表示） -->
+      <!-- 置換行（矢印クリックで展開） -->
       <StackPanel Name="ReplaceSection"
                   Orientation="Horizontal"
                   Spacing="6"
+                  Margin="24,0,0,0"
                   IsVisible="False">
 
         <!-- 置換テキストボックス -->
@@ -125,9 +140,9 @@
                  Width="260"
                  VerticalAlignment="Center" />
 
-        <!-- 置換ボタン -->
+        <!-- 置換ボタン (Enter) -->
         <Button Name="ReplaceButton"
-                Content="置換"
+                Content="置換 (Enter)"
                 FontFamily="{DynamicResource DefaultFont}"
                 FontSize="{DynamicResource FontSm}"
                 Foreground="{DynamicResource TextOnAccent}"
@@ -136,11 +151,12 @@
                 CornerRadius="{DynamicResource RadiusSm}"
                 Padding="12,4"
                 Height="30"
+                HorizontalContentAlignment="Center"
                 VerticalAlignment="Center" />
 
-        <!-- すべて置換ボタン -->
+        <!-- すべて置換ボタン (Ctrl+Enter) -->
         <Button Name="ReplaceAllButton"
-                Content="すべて置換"
+                Content="すべて置換 (Ctrl+Enter)"
                 FontFamily="{DynamicResource DefaultFont}"
                 FontSize="{DynamicResource FontSm}"
                 Foreground="{DynamicResource Accent}"
@@ -149,6 +165,7 @@
                 CornerRadius="{DynamicResource RadiusSm}"
                 Padding="12,4"
                 Height="30"
+                HorizontalContentAlignment="Center"
                 VerticalAlignment="Center" />
 
       </StackPanel>

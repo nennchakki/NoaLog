@@ -4,7 +4,7 @@ namespace NoaLog.Core.Ocr;
 
 /// <summary>
 /// OCRエンジンの共通インターフェース。
-/// Lite版はMangaOcrOnnxのみ、Pro版はQwenVlClientも使用可能。
+/// 現在はQwenVlClientのみ使用。
 /// </summary>
 public interface IOcrEngine
 {

@@ -5,8 +5,7 @@ namespace NoaLog.Core.Pipeline;
 
 public record CaptureRequest(
     string ProfileId,
-    Rect HeaderRect,
-    Rect BodyRect,
+    Rect TextAreaRect,
     Rect? NarratorRect,
     string LogType = "dialogue" // "dialogue" or "narration"
 );

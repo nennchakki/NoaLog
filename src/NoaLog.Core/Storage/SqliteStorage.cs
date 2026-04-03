@@ -328,74 +328,6 @@ public class SqliteStorage
         cmd.ExecuteNonQuery();
     }
 
-    // ─── CorrectionRecord CRUD ─────────────────────────────────────
-
-    public void InsertCorrectionRecord(CorrectionRecord record)
-    {
-        using var connection = CreateConnection();
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = """
-            INSERT INTO correction_log (
-                log_entry_id, field_name, original_value, corrected_value, ocr_engine, game_id
-            ) VALUES (
-                @logEntryId, @fieldName, @originalValue, @correctedValue, @ocrEngine, @gameId
-            );
-            """;
-        cmd.Parameters.AddWithValue("@logEntryId", record.LogEntryId);
-        cmd.Parameters.AddWithValue("@fieldName", record.FieldName);
-        cmd.Parameters.AddWithValue("@originalValue", record.OriginalValue);
-        cmd.Parameters.AddWithValue("@correctedValue", record.CorrectedValue);
-        cmd.Parameters.AddWithValue("@ocrEngine", record.OcrEngine);
-        cmd.Parameters.AddWithValue("@gameId", (object?)record.GameId ?? DBNull.Value);
-        cmd.ExecuteNonQuery();
-    }
-
-    public List<CorrectionRecord> GetUnsentCorrectionRecords()
-    {
-        using var connection = CreateConnection();
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM correction_log WHERE is_sent = 0;";
-
-        using var reader = cmd.ExecuteReader();
-        var records = new List<CorrectionRecord>();
-        while (reader.Read())
-        {
-            records.Add(new CorrectionRecord
-            {
-                Id = reader.GetInt32(reader.GetOrdinal("id")),
-                LogEntryId = reader.GetString(reader.GetOrdinal("log_entry_id")),
-                FieldName = reader.GetString(reader.GetOrdinal("field_name")),
-                OriginalValue = reader.GetString(reader.GetOrdinal("original_value")),
-                CorrectedValue = reader.GetString(reader.GetOrdinal("corrected_value")),
-                OcrEngine = reader.GetString(reader.GetOrdinal("ocr_engine")),
-                GameId = GetNullableString(reader, "game_id"),
-                CreatedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("created_at"))),
-                IsSent = reader.GetInt64(reader.GetOrdinal("is_sent")) != 0,
-            });
-        }
-        return records;
-    }
-
-    public void MarkCorrectionRecordsSent(IEnumerable<int> ids)
-    {
-        using var connection = CreateConnection();
-        using var cmd = connection.CreateCommand();
-
-        var idList = ids.ToList();
-        if (idList.Count == 0) return;
-
-        var paramNames = new List<string>();
-        for (var i = 0; i < idList.Count; i++)
-        {
-            var paramName = $"@id{i}";
-            paramNames.Add(paramName);
-            cmd.Parameters.AddWithValue(paramName, idList[i]);
-        }
-
-        cmd.CommandText = $"UPDATE correction_log SET is_sent = 1 WHERE id IN ({string.Join(", ", paramNames)});";
-        cmd.ExecuteNonQuery();
-    }
-
     // ─── Helpers ──────────────────────────────────────────────────
 
     private static void AddLogEntryParameters(SqliteCommand cmd, LogEntry entry)
@@ -426,8 +358,8 @@ public class SqliteStorage
         cmd.Parameters.AddWithValue("@id", profile.Id);
         cmd.Parameters.AddWithValue("@name", profile.Name);
         cmd.Parameters.AddWithValue("@description", profile.Description);
-        cmd.Parameters.AddWithValue("@headerRect", SerializeJson(profile.HeaderRect));
-        cmd.Parameters.AddWithValue("@bodyRect", SerializeJson(profile.BodyRect));
+        cmd.Parameters.AddWithValue("@headerRect", SerializeJson(profile.TextAreaRect));
+        cmd.Parameters.AddWithValue("@bodyRect", DBNull.Value);
         cmd.Parameters.AddWithValue("@narratorRect", SerializeJson(profile.NarratorRect));
         cmd.Parameters.AddWithValue("@hotkey", SerializeJson(profile.Hotkey));
         cmd.Parameters.AddWithValue("@narratorHotkey", SerializeJson(profile.NarratorHotkey));
@@ -474,8 +406,7 @@ public class SqliteStorage
             Id = reader.GetString(reader.GetOrdinal("id")),
             Name = reader.GetString(reader.GetOrdinal("name")),
             Description = reader.GetString(reader.GetOrdinal("description")),
-            HeaderRect = DeserializeJson<Rect>(GetNullableString(reader, "header_rect")),
-            BodyRect = DeserializeJson<Rect>(GetNullableString(reader, "body_rect")),
+            TextAreaRect = DeserializeJson<Rect>(GetNullableString(reader, "header_rect")),
             NarratorRect = DeserializeJson<Rect>(GetNullableString(reader, "narrator_rect")),
             Hotkey = DeserializeJson<Models.Hotkey>(GetNullableString(reader, "hotkey")),
             NarratorHotkey = DeserializeJson<Models.Hotkey>(GetNullableString(reader, "narrator_hotkey")),

@@ -213,9 +213,6 @@ public partial class ExportDialog : Window
         await using var writer = new StreamWriter(stream);
         await writer.WriteAsync(text);
 
-        // エクスポート完了後、バックグラウンドでテレメトリ送信
-        _ = Task.Run(() => App.AnonymousSender?.SendPendingAsync());
-
         Close(true);
     }
 

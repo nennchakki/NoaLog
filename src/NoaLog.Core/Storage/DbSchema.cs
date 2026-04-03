@@ -50,18 +50,6 @@ public static class DbSchema
             updated_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
-        CREATE TABLE IF NOT EXISTS correction_log (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            log_entry_id    TEXT NOT NULL,
-            field_name      TEXT NOT NULL,
-            original_value  TEXT NOT NULL,
-            corrected_value TEXT NOT NULL,
-            ocr_engine      TEXT NOT NULL,
-            game_id         TEXT,
-            created_at      TEXT NOT NULL DEFAULT (datetime('now')),
-            is_sent         INTEGER NOT NULL DEFAULT 0
-        );
-
         CREATE TABLE IF NOT EXISTS user_dict_entries (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
             game_id      TEXT NOT NULL,
@@ -79,6 +67,5 @@ public static class DbSchema
 
         CREATE INDEX IF NOT EXISTS idx_log_entries_profile_id ON log_entries(profile_id);
         CREATE INDEX IF NOT EXISTS idx_log_entries_timestamp ON log_entries(timestamp);
-        CREATE INDEX IF NOT EXISTS idx_correction_log_is_sent ON correction_log(is_sent);
         """;
 }

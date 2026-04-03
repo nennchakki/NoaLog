@@ -1,15 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using Avalonia;
-using Avalonia.Animation;
-using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Avalonia.Styling;
+using NoaLog.Core.Ocr;
 using NoaLog.Core.Storage;
 
 namespace NoaLog.App.Views;
@@ -34,8 +34,7 @@ public partial class SettingsDialog : Window
         var regionBox = this.FindControl<TextBox>("RegionHotkeyBox");
         var captureBox = this.FindControl<TextBox>("CaptureHotkeyBox");
         var narratorBox = this.FindControl<TextBox>("NarratorHotkeyBox");
-        var ocrCombo = this.FindControl<ComboBox>("OcrEngineCombo");
-        var telemetryToggle = this.FindControl<ToggleSwitch>("TelemetryToggle");
+        var inferenceLogToggle = this.FindControl<ToggleSwitch>("InferenceLogToggle");
 
         // Region hotkey
         var regionSetting = _storage?.GetSetting("hotkey.region");
@@ -64,30 +63,27 @@ public partial class SettingsDialog : Window
         _narratorHotkeyKeys = new List<string>(narratorSetting.Split('+'));
         if (narratorBox != null) narratorBox.Text = narratorSetting;
 
-        // OCR engine
-        var ocrEngine = _storage?.GetSetting("ocr.engine");
-        if (ocrCombo != null)
-        {
-            ocrCombo.SelectedIndex = ocrEngine == "Qwen3-VL" ? 1 : 0;
-        }
+        // Inference Log
+        var inferenceLog = _storage?.GetSetting("inference_log.visible");
+        if (inferenceLogToggle != null)
+            inferenceLogToggle.IsChecked = string.Equals(inferenceLog, "True", StringComparison.OrdinalIgnoreCase);
 
-        // Telemetry
-        var telemetry = _storage?.GetSetting("telemetry.enabled");
-        if (telemetryToggle != null)
-        {
-            telemetryToggle.IsChecked = string.Equals(telemetry, "True", StringComparison.OrdinalIgnoreCase);
-        }
+        // Ollama設定
+        var endpointBox = this.FindControl<TextBox>("OllamaEndpointBox");
+        var currentModelLabel = this.FindControl<TextBlock>("CurrentModelLabel");
+        var savedEndpoint = _storage?.GetSetting("ollama.endpoint") ?? "http://localhost:11434";
+        var savedModel = _storage?.GetSetting("ollama.model") ?? "qwen3-vl:4b";
 
-#if !PRO
-        var ocrSection = this.FindControl<Border>("OcrEngineSection");
-        if (ocrSection != null) ocrSection.IsVisible = false;
-#endif
+        if (endpointBox != null) endpointBox.Text = savedEndpoint;
+        if (currentModelLabel != null) currentModelLabel.Text = savedModel;
     }
 
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
         LoadSettings();
+        // 起動時にモデル一覧を自動取得
+        OnRefreshModels(null, new RoutedEventArgs());
     }
 
     private void OnRegionHotkeyKeyDown(object? sender, KeyEventArgs e)
@@ -165,25 +161,21 @@ public partial class SettingsDialog : Window
             _storage.SetSetting("hotkey.capture", string.Join("+", _captureHotkeyKeys));
             _storage.SetSetting("hotkey.narrator", string.Join("+", _narratorHotkeyKeys));
 
-            var ocrCombo = this.FindControl<ComboBox>("OcrEngineCombo");
-            var ocrEngine = "manga-ocr";
-            if (ocrCombo?.SelectedItem is ComboBoxItem item && item.Content is string text)
-            {
-                ocrEngine = text;
-            }
-            _storage.SetSetting("ocr.engine", ocrEngine);
+            var inferenceLogToggle = this.FindControl<ToggleSwitch>("InferenceLogToggle");
+            _storage.SetSetting("inference_log.visible", inferenceLogToggle?.IsChecked?.ToString() ?? "False");
 
-            var telemetryToggle = this.FindControl<ToggleSwitch>("TelemetryToggle");
-            _storage.SetSetting("telemetry.enabled", telemetryToggle?.IsChecked?.ToString() ?? "False");
+            // MainWindowの推論ログパネル表示を即時反映
+            if (Owner is MainWindow mainWindow)
+                mainWindow.SetInferenceLogVisible(inferenceLogToggle?.IsChecked == true);
 
-#if PRO
-            // エンジンが変わった場合はランタイム切替
-            var currentEngine = App.OcrEngine?.EngineName == "qwen_vl" ? "Qwen3-VL" : "manga-ocr";
-            if (ocrEngine != currentEngine)
+            // Ollama エンドポイント保存
+            var endpointBox = this.FindControl<TextBox>("OllamaEndpointBox");
+            if (endpointBox?.Text is { } ep && !string.IsNullOrWhiteSpace(ep))
             {
-                _ = App.SwitchOcrEngineAsync(ocrEngine);
+                _storage.SetSetting("ollama.endpoint", ep.Trim());
+                if (App.OcrEngine is QwenVlClient qwen)
+                    qwen.SetBaseUrl(ep.Trim());
             }
-#endif
         }
 
         Close(true);
@@ -278,5 +270,111 @@ public partial class SettingsDialog : Window
                 result.AppendLine(line);
         }
         return result.ToString().TrimEnd();
+    }
+
+    // ── Ollama モデル管理 ──
+
+    private static readonly HashSet<string> RecommendedPrefixes = new() { "glm-ocr", "gemma4" };
+
+    private async void OnRefreshModels(object? sender, RoutedEventArgs e)
+    {
+        var endpointBox = this.FindControl<TextBox>("OllamaEndpointBox");
+        var statusLabel = this.FindControl<TextBlock>("ModelStatusLabel");
+        var modelListPanel = this.FindControl<StackPanel>("ModelListPanel");
+        var endpoint = endpointBox?.Text?.Trim() ?? "http://localhost:11434";
+
+        try
+        {
+            if (statusLabel != null) statusLabel.Text = "取得中...";
+
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var response = await http.GetAsync($"{endpoint.TrimEnd('/')}/api/tags");
+            response.EnsureSuccessStatusCode();
+
+            using var stream = await response.Content.ReadAsStreamAsync();
+            using var doc = await JsonDocument.ParseAsync(stream);
+
+            var currentModel = _storage?.GetSetting("ollama.model") ?? "qwen3-vl:4b";
+
+            if (modelListPanel != null)
+            {
+                modelListPanel.Children.Clear();
+
+                if (doc.RootElement.TryGetProperty("models", out var models))
+                {
+                    foreach (var model in models.EnumerateArray())
+                    {
+                        var name = model.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+                        if (string.IsNullOrEmpty(name)) continue;
+
+                        var isRecommended = RecommendedPrefixes.Any(p => name.StartsWith(p));
+                        var isSelected = name == currentModel;
+
+                        var radio = new RadioButton
+                        {
+                            GroupName = "OllamaModel",
+                            IsChecked = isSelected,
+                            Margin = new Thickness(0, 2),
+                        };
+
+                        var label = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 6 };
+                        label.Children.Add(new TextBlock
+                        {
+                            Text = name,
+                            FontWeight = isSelected ? FontWeight.Bold : FontWeight.Normal,
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                        });
+
+                        if (isRecommended)
+                        {
+                            label.Children.Add(new Border
+                            {
+                                Background = SolidColorBrush.Parse("#128AFA"),
+                                CornerRadius = new CornerRadius(3),
+                                Padding = new Thickness(4, 1),
+                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                                Child = new TextBlock
+                                {
+                                    Text = "★ 推奨",
+                                    FontSize = 10,
+                                    Foreground = Brushes.White,
+                                },
+                            });
+                        }
+
+                        radio.Content = label;
+
+                        var modelName = name; // capture for closure
+                        radio.IsCheckedChanged += (_, _) =>
+                        {
+                            if (radio.IsChecked == true)
+                                OnModelSelected(modelName);
+                        };
+
+                        modelListPanel.Children.Add(radio);
+                    }
+                }
+            }
+
+            if (statusLabel != null) statusLabel.Text = "";
+        }
+        catch (Exception ex)
+        {
+            if (statusLabel != null) statusLabel.Text = $"接続エラー: {ex.Message}";
+        }
+    }
+
+    private async void OnModelSelected(string modelName)
+    {
+        _storage?.SetSetting("ollama.model", modelName);
+
+        var currentModelLabel = this.FindControl<TextBlock>("CurrentModelLabel");
+        if (currentModelLabel != null) currentModelLabel.Text = modelName;
+
+        if (App.OcrEngine is QwenVlClient qwen)
+        {
+            await qwen.SwitchModelAsync(modelName);
+            App.NotifyOcrEngineChanged();
+        }
     }
 }

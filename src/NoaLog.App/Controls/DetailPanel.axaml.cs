@@ -84,8 +84,15 @@ public partial class DetailPanel : UserControl
         if (_editOrgInput is not null)
             _editOrgInput.LostFocus += OnOrgInputLostFocus;
 
+        // Body テキスト編集をリアルタイム反映
+        if (_editBodyText is not null)
+            _editBodyText.TextChanged += OnBodyTextChanged;
+
         ApplyVisualState();
     }
+
+    /// <summary>編集内容が変更された時に発火</summary>
+    public event EventHandler? EntryEdited;
 
     // --- Public methods ---
 
@@ -140,6 +147,7 @@ public partial class DetailPanel : UserControl
             _selectedEntry.EditedSpeakerName = _editSpeakerInput.Text;
 
         UpdateHeader();
+        EntryEdited?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnOrgInputLostFocus(object? sender, RoutedEventArgs e)
@@ -154,6 +162,15 @@ public partial class DetailPanel : UserControl
             _selectedEntry.EditedSpeakerOrg = _editOrgInput.Text;
 
         UpdateHeader();
+        EntryEdited?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnBodyTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (_selectedEntry is null || _editBodyText is null) return;
+
+        _selectedEntry.EditedBodyText = _editBodyText.Text;
+        EntryEdited?.Invoke(this, EventArgs.Empty);
     }
 
     // --- Helpers ---

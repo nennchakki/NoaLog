@@ -42,20 +42,12 @@ public partial class ProfileEditorDialog : Window
         DescriptionBox.Text = profile.Description;
         NarratorLabelBox.Text = profile.NarratorLabel;
 
-        if (profile.HeaderRect is { } hr)
+        if (profile.TextAreaRect is { } ta)
         {
-            HeaderX.Value = hr.X;
-            HeaderY.Value = hr.Y;
-            HeaderW.Value = hr.Width;
-            HeaderH.Value = hr.Height;
-        }
-
-        if (profile.BodyRect is { } br)
-        {
-            BodyX.Value = br.X;
-            BodyY.Value = br.Y;
-            BodyW.Value = br.Width;
-            BodyH.Value = br.Height;
+            HeaderX.Value = ta.X;
+            HeaderY.Value = ta.Y;
+            HeaderW.Value = ta.Width;
+            HeaderH.Value = ta.Height;
         }
 
         if (profile.NarratorRect is { } nr)
@@ -98,17 +90,11 @@ public partial class ProfileEditorDialog : Window
         profile.NarratorLabel = NarratorLabelBox.Text?.Trim() ?? "語り部";
         profile.UpdatedAt = DateTime.UtcNow;
 
-        profile.HeaderRect = new Rect(
+        profile.TextAreaRect = new Rect(
             (int)(HeaderX.Value ?? 0),
             (int)(HeaderY.Value ?? 0),
             (int)(HeaderW.Value ?? 0),
             (int)(HeaderH.Value ?? 0));
-
-        profile.BodyRect = new Rect(
-            (int)(BodyX.Value ?? 0),
-            (int)(BodyY.Value ?? 0),
-            (int)(BodyW.Value ?? 0),
-            (int)(BodyH.Value ?? 0));
 
         profile.NarratorRect = new Rect(
             (int)(NarratorX.Value ?? 0),

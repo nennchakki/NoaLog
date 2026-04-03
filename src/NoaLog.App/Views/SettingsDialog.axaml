@@ -202,34 +202,7 @@
                     </StackPanel>
                 </Border>
 
-                <!-- PRO only: OCR Engine selection -->
-                <Border Name="OcrEngineSection"
-                        Background="{DynamicResource BgPanel}"
-                        BorderBrush="{DynamicResource BorderWarm}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="20"
-                        Margin="0,0,0,16">
-                    <StackPanel Spacing="16">
-                        <TextBlock Text="OCR Engine"
-                                   FontSize="{DynamicResource FontLg}"
-                                   FontWeight="Bold"
-                                   Foreground="{DynamicResource TextPrimary}" />
-                        <TextBlock Text="Select the OCR engine to use for text recognition."
-                                   FontSize="{DynamicResource FontSm}"
-                                   Foreground="{DynamicResource TextSecondary}" />
-
-                        <ComboBox Name="OcrEngineCombo"
-                                  HorizontalAlignment="Stretch"
-                                  MinHeight="36"
-                                  FontSize="{DynamicResource FontBase}">
-                            <ComboBoxItem Content="manga-ocr" />
-                            <ComboBoxItem Content="Qwen3-VL" />
-                        </ComboBox>
-                    </StackPanel>
-                </Border>
-
-                <!-- ═══ Section 3: Data Collection ═══ -->
+                <!-- ═══ Section 2: Inference Log ═══ -->
                 <Border Background="{DynamicResource BgPanel}"
                         BorderBrush="{DynamicResource BorderWarm}"
                         BorderThickness="1"
@@ -237,22 +210,88 @@
                         Padding="20"
                         Margin="0,0,0,16">
                     <StackPanel Spacing="16">
-                        <TextBlock Text="Data Collection"
+                        <TextBlock Text="Inference Log"
                                    FontSize="{DynamicResource FontLg}"
                                    FontWeight="Bold"
                                    Foreground="{DynamicResource TextPrimary}" />
-                        <TextBlock Text="Help improve OCR accuracy by anonymously sharing correction data."
+                        <TextBlock Text="推論処理のログをリアルタイムで表示します。"
                                    FontSize="{DynamicResource FontSm}"
                                    Foreground="{DynamicResource TextSecondary}" />
 
-                        <ToggleSwitch Name="TelemetryToggle"
+                        <ToggleSwitch Name="InferenceLogToggle"
                                       OnContent="ON"
                                       OffContent="OFF" />
+                    </StackPanel>
+                </Border>
 
-                        <TextBlock Text="OCR修正データを匿名で送信し、辞書改善に貢献します。個人情報は一切収集しません。"
-                                   FontSize="{DynamicResource FontSm}"
-                                   Foreground="{DynamicResource TextSecondary}"
-                                   TextWrapping="Wrap" />
+                <!-- ═══ Section 3: Ollama モデル設定 ═══ -->
+                <Border Background="{DynamicResource BgPanel}"
+                        BorderBrush="{DynamicResource BorderWarm}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,16">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="Ollama モデル設定"
+                                   FontSize="{DynamicResource FontLg}"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+
+                        <!-- エンドポイントURL -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="エンドポイント"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <TextBox Name="OllamaEndpointBox"
+                                     Watermark="http://localhost:11434"
+                                     MinHeight="36"
+                                     Background="{DynamicResource BgInput}"
+                                     BorderBrush="{DynamicResource BorderInputWarm}"
+                                     BorderThickness="1"
+                                     CornerRadius="{DynamicResource RadiusSm}"
+                                     Padding="10,8"
+                                     FontSize="{DynamicResource FontBase}" />
+                        </StackPanel>
+
+                        <!-- 現在のモデル -->
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="現在のモデル:"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Name="CurrentModelLabel"
+                                       FontSize="{DynamicResource FontBase}"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- モデル一覧 + 更新ボタン -->
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right"
+                                    Name="RefreshModelsButton"
+                                    Content="更新"
+                                    Width="80" Height="36"
+                                    Background="Transparent"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    BorderBrush="{DynamicResource BorderInputWarm}"
+                                    BorderThickness="1"
+                                    CornerRadius="{DynamicResource RadiusSm}"
+                                    FontSize="{DynamicResource FontSm}"
+                                    HorizontalContentAlignment="Center"
+                                    Cursor="Hand"
+                                    Click="OnRefreshModels" />
+                            <TextBlock Name="ModelStatusLabel"
+                                       Text=""
+                                       FontSize="{DynamicResource FontSm}"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0" />
+                        </DockPanel>
+
+                        <!-- モデルリスト -->
+                        <StackPanel Name="ModelListPanel" Spacing="4" />
                     </StackPanel>
                 </Border>
 

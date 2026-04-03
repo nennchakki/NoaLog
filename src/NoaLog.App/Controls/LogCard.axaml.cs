@@ -127,6 +127,8 @@ public partial class LogCard : UserControl
     private Border? _editedBadge;
     private Border? _narrationBadge;
     private Border? _lowConfBadge;
+    private CheckBox? _selectCheckBox;
+    private bool _suppressCheckBoxSync;
 
     // --- Brushes ---
     private static readonly IBrush NormalBackground = SolidColorBrush.Parse("#FFFFFF");
@@ -153,6 +155,18 @@ public partial class LogCard : UserControl
         _editedBadge = this.FindControl<Border>("EditedBadge");
         _narrationBadge = this.FindControl<Border>("NarrationBadge");
         _lowConfBadge = this.FindControl<Border>("LowConfBadge");
+        _selectCheckBox = this.FindControl<CheckBox>("SelectCheckBox");
+
+        // CheckBox連動
+        if (_selectCheckBox != null)
+        {
+            _selectCheckBox.IsCheckedChanged += (_, _) =>
+            {
+                if (_suppressCheckBoxSync) return;
+                IsCardSelected = _selectCheckBox.IsChecked == true;
+                RaiseEvent(new RoutedEventArgs(CardClickedEvent));
+            };
+        }
 
         ApplyPropertyValues();
     }
@@ -279,6 +293,14 @@ public partial class LogCard : UserControl
         {
             _cardBorder.Background = NormalBackground;
             _cardBorder.BorderBrush = TransparentBrush;
+        }
+
+        // CheckBox同期（無限ループ防止）
+        if (_selectCheckBox != null)
+        {
+            _suppressCheckBoxSync = true;
+            _selectCheckBox.IsChecked = IsCardSelected;
+            _suppressCheckBoxSync = false;
         }
     }
 }

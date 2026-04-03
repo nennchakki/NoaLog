@@ -5,8 +5,7 @@ public class Profile
     public string Id { get; set; }
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
-    public Rect? HeaderRect { get; set; }
-    public Rect? BodyRect { get; set; }
+    public Rect? TextAreaRect { get; set; }
     public Rect? NarratorRect { get; set; }
     public Hotkey? Hotkey { get; set; }
     public Hotkey? NarratorHotkey { get; set; }

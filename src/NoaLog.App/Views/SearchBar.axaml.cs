@@ -138,12 +138,40 @@ public partial class SearchBar : UserControl
                 e.Handled = true;
                 break;
 
+            case Key.Enter when _replaceInput?.IsFocused == true && e.KeyModifiers.HasFlag(KeyModifiers.Control):
+                // Ctrl+Enter（置換フィールド）: すべて置換
+                OnReplaceAllClick(null, new RoutedEventArgs());
+                e.Handled = true;
+                break;
+
+            case Key.Enter when _replaceInput?.IsFocused == true:
+                // Enter（置換フィールド）: 1つ置換
+                OnReplaceClick(null, new RoutedEventArgs());
+                e.Handled = true;
+                break;
+
             case Key.Enter:
-                // Enter: 次の一致へ（検索フィールドにフォーカスがある場合）
+                // Enter（検索フィールド）: 次の一致へ
                 NavigateNext();
                 e.Handled = true;
                 break;
         }
+    }
+
+    private void OnExpandReplaceClick(object? sender, RoutedEventArgs e)
+    {
+        if (_replaceSection is null) return;
+
+        _isReplaceMode = !_isReplaceMode;
+        _replaceSection.IsVisible = _isReplaceMode;
+
+        // 矢印の向きを変える
+        var expandButton = this.FindControl<Button>("ExpandReplaceButton");
+        if (expandButton != null)
+            expandButton.Content = _isReplaceMode ? "▼" : "▶";
+
+        if (_isReplaceMode)
+            _replaceInput?.Focus();
     }
 
     // --- 公開メソッド ---
@@ -152,14 +180,16 @@ public partial class SearchBar : UserControl
     /// 検索バーを表示し、検索フィールドにフォーカスを設定する。
     /// </summary>
     /// <param name="replaceMode">true の場合、置換セクションも表示する</param>
-    public void Show(bool replaceMode)
+    public void Show(bool replaceMode = false)
     {
         _isReplaceMode = replaceMode;
 
         if (_replaceSection is not null)
-        {
             _replaceSection.IsVisible = replaceMode;
-        }
+
+        var expandButton = this.FindControl<Button>("ExpandReplaceButton");
+        if (expandButton != null)
+            expandButton.Content = replaceMode ? "▼" : "▶";
 
         IsVisible = true;
 

@@ -81,6 +81,7 @@
                          FontSize="14"
                          FontWeight="Medium"
                          Foreground="{DynamicResource TextPrimary}"
+                         MinHeight="20" MinWidth="100"
                          Cursor="Hand" />
               <!-- Edit mode -->
               <TextBox Name="EditSpeakerInput"

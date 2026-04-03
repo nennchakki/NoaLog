@@ -10,23 +10,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <!-- Lite/Pro切替 -->
-  <PropertyGroup Condition="'$(Edition)' == 'Pro'">
-    <DefineConstants>$(DefineConstants);PRO</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Edition)' != 'Pro'">
-    <DefineConstants>$(DefineConstants);LITE</DefineConstants>
-  </PropertyGroup>
-
-  <ItemGroup>
+<ItemGroup>
     <AvaloniaResource Include="Assets\Fonts\NotoSansJP-Light.otf" />
     <AvaloniaResource Include="Assets\Fonts\NotoSansJP-Regular.otf" />
   </ItemGroup>
 
   <!-- モデル・辞書ファイルを出力ディレクトリにコピー -->
   <ItemGroup>
-    <Content Include="..\..\data\models\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="data\models" />
-    <Content Include="..\..\data\dictionaries\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="data\dictionaries" />
+<Content Include="..\..\data\dictionaries\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="data\dictionaries" />
   </ItemGroup>
 
   <ItemGroup>

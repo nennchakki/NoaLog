@@ -12,9 +12,9 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using NoaLog.App.Controls;
 using NoaLog.Core.Models;
+using NoaLog.Core.Ocr;
 using NoaLog.Core.Pipeline;
 using NoaLog.Core.Storage;
-using NoaLog.Core.Telemetry;
 
 namespace NoaLog.App.Views;
 
@@ -43,22 +43,36 @@ public partial class MainWindow : Window
     private TextBlock? _ocrEngineLabel;
     private DispatcherTimer? _engineCheckTimer;
 
+    // 推論ログパネル
+    private Border? _inferenceLogPanel;
+    private TextBlock? _inferenceLogText;
+    private ScrollViewer? _inferenceLogScroll;
+
     private readonly SqliteStorage _storage;
-    private readonly CorrectionLogger? _correctionLogger;
-    private List<Profile> _profiles = new();
+private List<Profile> _profiles = new();
     private Profile? _currentProfile;
     private List<LogEntry> _logEntries = new();
     private LogCard? _selectedCard;
     private LogEntry? _selectedEntry;
+    private HashSet<LogCard> _selectedCards = new();
+    private bool _isDragSelecting;
+    private ScrollViewer? _logScrollViewer;
+    private List<int> _matchIndices = new();
+    private int _currentMatchIndex = -1;
 
     // AXAMLローダー用パラメータなしコンストラクタ
-    public MainWindow() : this(App.Storage!, App.CorrectionLogger) { }
+    public MainWindow() : this(App.Storage!) { }
 
-    public MainWindow(SqliteStorage storage, CorrectionLogger? correctionLogger = null)
+    public MainWindow(SqliteStorage storage)
     {
         _storage = storage;
-        _correctionLogger = correctionLogger;
         InitializeComponent();
+    }
+
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        base.OnClosing(e);
+        Environment.Exit(0);
     }
 
     protected override void OnOpened(EventArgs e)
@@ -72,6 +86,7 @@ public partial class MainWindow : Window
         _narratorHotkeyLabel = this.FindControl<TextBlock>("NarratorHotkeyLabel");
         _profileCombo = this.FindControl<ComboBox>("ProfileCombo");
         _logList = this.FindControl<ItemsControl>("LogList");
+        _logScrollViewer = this.FindControl<ScrollViewer>("LogScrollViewer");
         _statCount = this.FindControl<TextBlock>("StatCount");
         _entryCountLabel = this.FindControl<TextBlock>("EntryCountLabel");
         _lastCaptureLabel = this.FindControl<TextBlock>("LastCaptureLabel");
@@ -96,6 +111,17 @@ public partial class MainWindow : Window
         };
         _engineCheckTimer.Start();
 
+        // 推論ログパネル
+        _inferenceLogPanel = this.FindControl<Border>("InferenceLogPanel");
+        _inferenceLogText = this.FindControl<TextBlock>("InferenceLogText");
+        _inferenceLogScroll = this.FindControl<ScrollViewer>("InferenceLogScroll");
+        var showLog = _storage.GetSetting("inference_log.visible");
+        if (_inferenceLogPanel != null && string.Equals(showLog, "True", StringComparison.OrdinalIgnoreCase))
+            _inferenceLogPanel.IsVisible = true;
+
+        // QwenVlClientのストリーミングイベント購読
+        SubscribeInferenceEvents();
+
         // OCRエンジン切替イベント購読
         App.OcrEngineChanged += OnOcrEngineChanged;
 
@@ -111,10 +137,22 @@ public partial class MainWindow : Window
                 });
         }
 
+        // ドラッグ選択イベント
+        if (_logScrollViewer != null)
+        {
+            _logScrollViewer.PointerPressed += OnLogListPointerPressed;
+            _logScrollViewer.PointerMoved += OnLogListPointerMoved;
+            _logScrollViewer.PointerReleased += OnLogListPointerReleased;
+        }
+
         // DetailPanel・CopyPanel・SearchBarは名前で検索
         _detailPanel = this.FindControl<DetailPanel>("DetailPanel");
         _copyPanel = this.FindControl<CopyPanel>("CopyPanel");
         _searchBar = this.FindControl<SearchBar>("SearchBar");
+
+        // DetailPanel編集イベント → LogCardリアルタイム更新
+        if (_detailPanel != null)
+            _detailPanel.EntryEdited += OnDetailPanelEdited;
 
         // CopyPanelイベント
         if (_copyPanel != null)
@@ -128,6 +166,7 @@ public partial class MainWindow : Window
         {
             _searchBar.SearchChanged += OnSearchChanged;
             _searchBar.NavigateToMatch += OnNavigateToMatch;
+            _searchBar.ReplaceRequested += OnReplaceRequested;
             _searchBar.ReplaceAllRequested += OnReplaceAllRequested;
             _searchBar.SearchClosed += OnSearchClosed;
         }
@@ -172,13 +211,15 @@ public partial class MainWindow : Window
     {
         if (_currentProfile == null || _logList == null) return;
 
-        _logEntries = _storage.GetLogEntries(_currentProfile.Id);
+        // 起動時はログを読み込まない — 新規キャプチャのみ表示
+        _logEntries = new List<LogEntry>();
         RebuildLogCards();
         UpdateStats();
 
         // 選択解除
         _selectedCard = null;
         _selectedEntry = null;
+        _selectedCards.Clear();
         _detailPanel?.ClearEntry();
     }
 
@@ -216,12 +257,33 @@ public partial class MainWindow : Window
         // 現在の編集を保存
         SaveCurrentEdits();
 
-        // 前の選択を解除
-        if (_selectedCard != null)
-            _selectedCard.IsCardSelected = false;
+        // Ctrl/Cmd+クリックで追加選択
+        var args = e as PointerPressedEventArgs;
+        bool isMultiSelect = args?.KeyModifiers.HasFlag(KeyModifiers.Control) == true ||
+                             args?.KeyModifiers.HasFlag(KeyModifiers.Meta) == true;
 
-        // 新しい選択
-        clickedCard.IsCardSelected = true;
+        if (isMultiSelect)
+        {
+            // トグル選択
+            if (_selectedCards.Contains(clickedCard))
+            {
+                clickedCard.IsCardSelected = false;
+                _selectedCards.Remove(clickedCard);
+            }
+            else
+            {
+                clickedCard.IsCardSelected = true;
+                _selectedCards.Add(clickedCard);
+            }
+        }
+        else
+        {
+            // 通常クリック: 他の選択を解除して1つ選択
+            DeselectAllCards();
+            clickedCard.IsCardSelected = true;
+            _selectedCards.Add(clickedCard);
+        }
+
         _selectedCard = clickedCard;
 
         // エントリを取得してDetailPanelに表示
@@ -231,6 +293,102 @@ public partial class MainWindow : Window
             _selectedEntry = entry;
             _detailPanel?.SetEntry(entry);
         }
+    }
+
+    private void SelectAllCards()
+    {
+        if (_logList == null) return;
+        foreach (var item in _logList.Items)
+        {
+            if (item is LogCard card)
+            {
+                card.IsCardSelected = true;
+                _selectedCards.Add(card);
+            }
+        }
+    }
+
+    private void DeselectAllCards()
+    {
+        foreach (var card in _selectedCards)
+            card.IsCardSelected = false;
+        _selectedCards.Clear();
+        _selectedCard = null;
+        _selectedEntry = null;
+    }
+
+    private void DeleteSelectedCards()
+    {
+        if (_selectedCards.Count == 0) return;
+
+        // 選択されたカードのEntryIdを収集
+        var idsToRemove = _selectedCards.Select(c => c.EntryId).ToHashSet();
+
+        // リストから削除
+        _logEntries.RemoveAll(e => idsToRemove.Contains(e.Id));
+
+        // 選択状態クリア
+        _selectedCards.Clear();
+        _selectedCard = null;
+        _selectedEntry = null;
+        _detailPanel?.ClearEntry();
+
+        // UI再構築
+        RebuildLogCards();
+        UpdateStats();
+    }
+
+    // ── ドラッグ選択 ──
+
+    private void OnLogListPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        _isDragSelecting = true;
+    }
+
+    private void OnLogListPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (!_isDragSelecting || _logList == null || _logScrollViewer == null) return;
+
+        var pos = e.GetPosition(_logList);
+
+        // カーソル位置のカードを選択
+        foreach (var item in _logList.Items)
+        {
+            if (item is LogCard card)
+            {
+                var cardBounds = card.Bounds;
+                if (pos.Y >= cardBounds.Y && pos.Y <= cardBounds.Y + cardBounds.Height)
+                {
+                    if (!_selectedCards.Contains(card))
+                    {
+                        card.IsCardSelected = true;
+                        _selectedCards.Add(card);
+                    }
+                }
+            }
+        }
+
+        // 上端/下端付近で自動スクロール
+        var scrollPos = e.GetPosition(_logScrollViewer);
+        if (scrollPos.Y < 30)
+            _logScrollViewer.Offset = new Avalonia.Vector(_logScrollViewer.Offset.X, Math.Max(0, _logScrollViewer.Offset.Y - 15));
+        else if (scrollPos.Y > _logScrollViewer.Bounds.Height - 30)
+            _logScrollViewer.Offset = new Avalonia.Vector(_logScrollViewer.Offset.X, _logScrollViewer.Offset.Y + 15);
+    }
+
+    private void OnLogListPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        _isDragSelecting = false;
+    }
+
+    private void OnDetailPanelEdited(object? sender, EventArgs e)
+    {
+        if (_selectedCard == null || _selectedEntry == null) return;
+
+        _selectedCard.SpeakerNameText = _selectedEntry.DisplayName;
+        _selectedCard.OrgText = _selectedEntry.DisplayOrg;
+        _selectedCard.BodyText = _selectedEntry.DisplayBody;
+        _selectedCard.IsEdited = true;
     }
 
     private void SaveCurrentEdits()
@@ -252,20 +410,6 @@ public partial class MainWindow : Window
 
         if (changed)
         {
-            // 修正差分をテレメトリ用に記録
-            if (_correctionLogger != null)
-            {
-                if (currentEntry.EditedSpeakerName != _selectedEntry.EditedSpeakerName)
-                    _correctionLogger.LogCorrection(_selectedEntry, "speaker_name",
-                        _selectedEntry.SpeakerName, currentEntry.EditedSpeakerName ?? "");
-                if (currentEntry.EditedSpeakerOrg != _selectedEntry.EditedSpeakerOrg)
-                    _correctionLogger.LogCorrection(_selectedEntry, "speaker_org",
-                        _selectedEntry.SpeakerOrg, currentEntry.EditedSpeakerOrg ?? "");
-                if (currentEntry.EditedBodyText != _selectedEntry.EditedBodyText)
-                    _correctionLogger.LogCorrection(_selectedEntry, "body_text",
-                        _selectedEntry.BodyText, currentEntry.EditedBodyText ?? "");
-            }
-
             _storage.UpdateLogEntry(currentEntry);
 
             // LogCardの表示も更新
@@ -321,7 +465,11 @@ public partial class MainWindow : Window
     {
         base.OnKeyDown(e);
 
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        // Ctrl (Windows/Linux) or Cmd (macOS)
+        bool hasModifier = e.KeyModifiers.HasFlag(KeyModifiers.Control) ||
+                           e.KeyModifiers.HasFlag(KeyModifiers.Meta);
+
+        if (hasModifier)
         {
             switch (e.Key)
             {
@@ -333,15 +481,31 @@ public partial class MainWindow : Window
                     e.Handled = true;
                     _searchBar?.Show(false);
                     break;
-                case Key.H:
-                    e.Handled = true;
-                    _searchBar?.Show(true);
-                    break;
                 case Key.L:
                     e.Handled = true;
                     OnCaptureClick(null, e);
                     break;
+                case Key.A:
+                    e.Handled = true;
+                    SelectAllCards();
+                    break;
+                case Key.N:
+                    e.Handled = true;
+                    OnNarratorCaptureClick();
+                    break;
             }
+        }
+
+        if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            DeselectAllCards();
+        }
+
+        if (e.Key == Key.Back || e.Key == Key.Delete)
+        {
+            e.Handled = true;
+            DeleteSelectedCards();
         }
     }
 
@@ -354,7 +518,7 @@ public partial class MainWindow : Window
 
     private void OnRegionsSelected(object? sender, RegionsSelectedEventArgs e)
     {
-        Console.Error.WriteLine($"[Regions] OnRegionsSelected called: Header={e.HeaderRect}, Body={e.BodyRect}, Narrator={e.NarratorRect}");
+        Console.Error.WriteLine($"[Regions] OnRegionsSelected called: TextArea={e.TextAreaRect}, Narrator={e.NarratorRect}");
 
         // プロファイルがなければ自動作成
         if (_currentProfile == null)
@@ -365,14 +529,12 @@ public partial class MainWindow : Window
             LoadProfiles();
         }
 
-        if (e.HeaderRect is { } hr)
-            _currentProfile.HeaderRect = new Core.Models.Rect((int)hr.X, (int)hr.Y, (int)hr.Width, (int)hr.Height);
-        if (e.BodyRect is { } br)
-            _currentProfile.BodyRect = new Core.Models.Rect((int)br.X, (int)br.Y, (int)br.Width, (int)br.Height);
+        if (e.TextAreaRect is { } ta)
+            _currentProfile.TextAreaRect = new Core.Models.Rect((int)ta.X, (int)ta.Y, (int)ta.Width, (int)ta.Height);
         if (e.NarratorRect is { } nr)
             _currentProfile.NarratorRect = new Core.Models.Rect((int)nr.X, (int)nr.Y, (int)nr.Width, (int)nr.Height);
 
-        Console.Error.WriteLine($"[Regions] Saved to profile: BodyRect={_currentProfile.BodyRect}");
+        Console.Error.WriteLine($"[Regions] Saved to profile: TextAreaRect={_currentProfile.TextAreaRect}");
 
         // プロファイルの領域をDBに保存
         _storage.UpdateProfile(_currentProfile);
@@ -440,12 +602,12 @@ public partial class MainWindow : Window
 
     private async void OnCaptureClick(object? sender, RoutedEventArgs e)
     {
-        Console.Error.WriteLine($"[Capture] Profile={_currentProfile?.Name}, BodyRect={_currentProfile?.BodyRect}, Engine={App.OcrEngine?.EngineName}, IsReady={App.OcrEngine?.IsReady}");
+        Console.Error.WriteLine($"[Capture] Profile={_currentProfile?.Name}, TextAreaRect={_currentProfile?.TextAreaRect}, Engine={App.OcrEngine?.EngineName}, IsReady={App.OcrEngine?.IsReady}");
 
         // 領域が未設定の場合
-        if (_currentProfile == null || _currentProfile.BodyRect == null)
+        if (_currentProfile == null || _currentProfile.TextAreaRect == null)
         {
-            Console.Error.WriteLine("[Capture] No profile or body rect — aborting");
+            Console.Error.WriteLine("[Capture] No profile or text area rect — aborting");
             if (_haloIndicator != null)
                 _haloIndicator.State = HaloState.Failed;
             return;
@@ -468,9 +630,36 @@ public partial class MainWindow : Window
 
         var request = new CaptureRequest(
             _currentProfile.Id,
-            _currentProfile.HeaderRect ?? new Core.Models.Rect(0, 0, 0, 0),
-            _currentProfile.BodyRect,
+            _currentProfile.TextAreaRect,
             _currentProfile.NarratorRect
+        );
+        await App.CaptureQueue.EnqueueAsync(request);
+    }
+
+    private async void OnNarratorCaptureClick()
+    {
+        if (_currentProfile == null || _currentProfile.NarratorRect == null)
+        {
+            Console.Error.WriteLine("[Capture] No narrator rect — aborting");
+            if (_haloIndicator != null)
+                _haloIndicator.State = HaloState.Failed;
+            return;
+        }
+        if (App.CaptureQueue == null || App.OcrEngine == null || !App.OcrEngine.IsReady)
+        {
+            if (_haloIndicator != null)
+                _haloIndicator.State = HaloState.Failed;
+            return;
+        }
+
+        if (_haloIndicator != null)
+            _haloIndicator.State = HaloState.Processing;
+
+        var request = new CaptureRequest(
+            _currentProfile.Id,
+            _currentProfile.NarratorRect,
+            null,
+            "narration"
         );
         await App.CaptureQueue.EnqueueAsync(request);
     }
@@ -523,6 +712,7 @@ public partial class MainWindow : Window
             // CaptureWorkerの再購読（新ワーカーに切り替わっているため）
             if (App.CaptureWorker != null)
             {
+                App.CaptureWorker.EntryCreated -= OnCaptureEntryCreated;
                 App.CaptureWorker.EntryCreated += OnCaptureEntryCreated;
                 App.CaptureWorker.ProcessingFailed += (_, _) =>
                     Dispatcher.UIThread.Post(() =>
@@ -582,7 +772,9 @@ public partial class MainWindow : Window
                 matchIndices.Add(i);
         }
 
-        _searchBar?.UpdateMatchCount(matchIndices.Count, matchIndices.Count > 0 ? 0 : -1);
+        _matchIndices = matchIndices;
+        _currentMatchIndex = matchIndices.Count > 0 ? 0 : -1;
+        _searchBar?.UpdateMatchCount(matchIndices.Count, _currentMatchIndex);
 
         // マッチしたカードをハイライト（LogCardの選択状態で表示）
         if (_logList != null)
@@ -610,6 +802,38 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnReplaceRequested(object? sender, ReplaceEventArgs e)
+    {
+        if (string.IsNullOrEmpty(e.Query) || _currentMatchIndex < 0 || _currentMatchIndex >= _matchIndices.Count)
+            return;
+
+        var entryIndex = _matchIndices[_currentMatchIndex];
+        var entry = _logEntries[entryIndex];
+
+        ReplaceInEntry(entry, e.Query, e.Replacement, e.IsRegex, onceOnly: true);
+
+        // LogCard更新
+        if (_logList?.Items[entryIndex] is LogCard card)
+        {
+            card.SpeakerNameText = entry.DisplayName;
+            card.OrgText = entry.DisplayOrg;
+            card.BodyText = entry.DisplayBody;
+            card.IsEdited = true;
+        }
+
+        // DetailPanel更新
+        if (_selectedEntry?.Id == entry.Id)
+            _detailPanel?.SetEntry(entry);
+
+        // 次のマッチへ移動
+        if (_currentMatchIndex < _matchIndices.Count - 1)
+        {
+            _currentMatchIndex++;
+            _searchBar?.UpdateMatchCount(_matchIndices.Count, _currentMatchIndex);
+            OnNavigateToMatch(null, _currentMatchIndex);
+        }
+    }
+
     private void OnReplaceAllRequested(object? sender, ReplaceEventArgs e)
     {
         if (string.IsNullOrEmpty(e.Query)) return;
@@ -617,44 +841,64 @@ public partial class MainWindow : Window
         int replacedCount = 0;
         foreach (var entry in _logEntries)
         {
-            bool changed = false;
-            var body = entry.EditedBodyText ?? entry.BodyText;
-
-            string newBody;
-            if (e.IsRegex)
-            {
-                try
-                {
-                    var regex = new System.Text.RegularExpressions.Regex(e.Query,
-                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                    newBody = regex.Replace(body, e.Replacement);
-                }
-                catch { continue; }
-            }
-            else
-            {
-                newBody = body.Replace(e.Query, e.Replacement, StringComparison.OrdinalIgnoreCase);
-            }
-
-            if (newBody != body)
-            {
-                entry.EditedBodyText = newBody;
-                _storage.UpdateLogEntry(entry);
-                changed = true;
+            if (ReplaceInEntry(entry, e.Query, e.Replacement, e.IsRegex, onceOnly: false))
                 replacedCount++;
-            }
-
-            if (changed) continue; // body was changed
         }
 
         if (replacedCount > 0)
         {
-            // ログリストを再構築
             RebuildLogCards();
             _detailPanel?.ClearEntry();
             _selectedCard = null;
             _selectedEntry = null;
         }
+    }
+
+    private static bool ReplaceInEntry(LogEntry entry, string query, string replacement, bool isRegex, bool onceOnly)
+    {
+        bool changed = false;
+
+        // Speaker
+        var speaker = entry.EditedSpeakerName ?? entry.SpeakerName;
+        var newSpeaker = ApplyReplace(speaker, query, replacement, isRegex, onceOnly);
+        if (newSpeaker != speaker) { entry.EditedSpeakerName = newSpeaker; changed = true; }
+
+        // Org
+        var org = entry.EditedSpeakerOrg ?? entry.SpeakerOrg;
+        var newOrg = ApplyReplace(org, query, replacement, isRegex, onceOnly);
+        if (newOrg != org) { entry.EditedSpeakerOrg = newOrg; changed = true; }
+
+        // Body
+        var body = entry.EditedBodyText ?? entry.BodyText;
+        var newBody = ApplyReplace(body, query, replacement, isRegex, onceOnly);
+        if (newBody != body) { entry.EditedBodyText = newBody; changed = true; }
+
+        return changed;
+    }
+
+    private static string ApplyReplace(string text, string query, string replacement, bool isRegex, bool onceOnly)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+
+        if (isRegex)
+        {
+            try
+            {
+                var regex = new System.Text.RegularExpressions.Regex(query,
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                return onceOnly ? regex.Replace(text, replacement, 1) : regex.Replace(text, replacement);
+            }
+            catch { return text; }
+        }
+
+        if (onceOnly)
+        {
+            var idx = text.IndexOf(query, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) return text;
+            return text[..idx] + replacement + text[(idx + query.Length)..];
+        }
+
+        return text.Replace(query, replacement, StringComparison.OrdinalIgnoreCase);
     }
 
     private void OnSearchClosed(object? sender, EventArgs e)
@@ -704,5 +948,40 @@ public partial class MainWindow : Window
             }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }),
             _ => $"[{entry.Timestamp:yyyy-MM-dd HH:mm:ss}] {entry.DisplayHeader}\n{entry.DisplayBody}",
         };
+    }
+
+    // ── 推論ログパネル ──
+
+    private void SubscribeInferenceEvents()
+    {
+        if (App.OcrEngine is QwenVlClient qwen)
+        {
+            qwen.InferenceStarted += label =>
+                Dispatcher.UIThread.Post(() => AppendInferenceLog($"\n[{label}] "));
+
+            qwen.TokenReceived += token =>
+                Dispatcher.UIThread.Post(() => AppendInferenceLog(token));
+
+            qwen.InferenceCompleted += _ =>
+                Dispatcher.UIThread.Post(() => AppendInferenceLog(" ✓\n"));
+        }
+    }
+
+    private void AppendInferenceLog(string text)
+    {
+        if (_inferenceLogText == null) return;
+        _inferenceLogText.Text += text;
+
+        // 長くなりすぎたら先頭を切り捨て
+        if (_inferenceLogText.Text.Length > 5000)
+            _inferenceLogText.Text = _inferenceLogText.Text[^3000..];
+
+        _inferenceLogScroll?.ScrollToEnd();
+    }
+
+    public void SetInferenceLogVisible(bool visible)
+    {
+        if (_inferenceLogPanel != null)
+            _inferenceLogPanel.IsVisible = visible;
     }
 }

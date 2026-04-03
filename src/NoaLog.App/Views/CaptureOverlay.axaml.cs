@@ -14,32 +14,29 @@ namespace NoaLog.App.Views;
 public partial class CaptureOverlay : Window
 {
     // Selection stages
-    private enum SelectionStage { Header, Body, Narrator }
+    private enum SelectionStage { TextArea, Narrator }
 
     private static readonly string[] StageInstructions =
     {
-        "ステップ 1/3: 名前領域を選択",
-        "ステップ 2/3: 本文領域を選択",
-        "ステップ 3/3: 語り部領域を選択 (任意 — S でスキップ)",
+        "ステップ 1/2: テキスト領域を選択（名前+本文）",
+        "ステップ 2/2: 語り部領域を選択 (任意 — S でスキップ)",
     };
 
     private static readonly string[] StageLabels =
     {
-        "Header (名前)",
-        "Body (本文)",
+        "TextArea (名前+本文)",
         "Narrator (語り部)",
     };
 
     // State
-    private SelectionStage _currentStage = SelectionStage.Header;
+    private SelectionStage _currentStage = SelectionStage.TextArea;
     private bool _isSelecting;
     private Point _startPoint;
     private Point _currentPoint;
     private Rect? _currentRect;
 
     // Confirmed regions
-    private Rect? _headerRect;
-    private Rect? _bodyRect;
+    private Rect? _textAreaRect;
     private Rect? _narratorRect;
 
     // Minimum selection size
@@ -228,14 +225,8 @@ public partial class CaptureOverlay : Window
 
         switch (_currentStage)
         {
-            case SelectionStage.Header:
-                _headerRect = _currentRect;
-                _currentRect = null;
-                _currentStage = SelectionStage.Body;
-                break;
-
-            case SelectionStage.Body:
-                _bodyRect = _currentRect;
+            case SelectionStage.TextArea:
+                _textAreaRect = _currentRect;
                 _currentRect = null;
                 _currentStage = SelectionStage.Narrator;
                 break;
@@ -258,13 +249,12 @@ public partial class CaptureOverlay : Window
 
     private void CompleteSelection()
     {
-        Console.Error.WriteLine($"[Overlay] CompleteSelection: Header={_headerRect}, Body={_bodyRect}, Narrator={_narratorRect}");
+        Console.Error.WriteLine($"[Overlay] CompleteSelection: TextArea={_textAreaRect}, Narrator={_narratorRect}");
         StopSelectionBlink();
         StopConfirmFlash();
         RegionsSelected?.Invoke(this, new RegionsSelectedEventArgs
         {
-            HeaderRect = _headerRect,
-            BodyRect = _bodyRect,
+            TextAreaRect = _textAreaRect,
             NarratorRect = _narratorRect,
         });
         Close();
@@ -306,9 +296,8 @@ public partial class CaptureOverlay : Window
         context.DrawRectangle(new SolidColorBrush(OverlayBgColor), null, bounds);
 
         // 2. Confirmed regions (green solid border)
-        DrawConfirmedRegion(context, _headerRect, StageLabels[0]);
-        DrawConfirmedRegion(context, _bodyRect, StageLabels[1]);
-        DrawConfirmedRegion(context, _narratorRect, StageLabels[2]);
+        DrawConfirmedRegion(context, _textAreaRect, StageLabels[0]);
+        DrawConfirmedRegion(context, _narratorRect, StageLabels[1]);
 
         // 3. Current selection (ice-blue solid 1px with blink)
         if (_currentRect.HasValue)
@@ -582,7 +571,6 @@ public partial class CaptureOverlay : Window
 
 public class RegionsSelectedEventArgs : EventArgs
 {
-    public Rect? HeaderRect { get; init; }
-    public Rect? BodyRect { get; init; }
+    public Rect? TextAreaRect { get; init; }
     public Rect? NarratorRect { get; init; }
 }

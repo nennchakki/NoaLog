@@ -34,8 +34,7 @@ public class StorageTests : IDisposable
         {
             Name = "テストプロファイル",
             Description = "ブルーアーカイブ用",
-            HeaderRect = new Rect(100, 200, 300, 50),
-            BodyRect = new Rect(100, 260, 300, 200),
+            TextAreaRect = new Rect(100, 200, 300, 250),
         };
 
         _storage.InsertProfile(profile);
@@ -44,11 +43,11 @@ public class StorageTests : IDisposable
         Assert.NotNull(loaded);
         Assert.Equal("テストプロファイル", loaded!.Name);
         Assert.Equal("ブルーアーカイブ用", loaded.Description);
-        Assert.NotNull(loaded.HeaderRect);
-        Assert.Equal(100, loaded.HeaderRect!.X);
-        Assert.Equal(200, loaded.HeaderRect.Y);
-        Assert.Equal(300, loaded.HeaderRect.Width);
-        Assert.Equal(50, loaded.HeaderRect.Height);
+        Assert.NotNull(loaded.TextAreaRect);
+        Assert.Equal(100, loaded.TextAreaRect!.X);
+        Assert.Equal(200, loaded.TextAreaRect.Y);
+        Assert.Equal(300, loaded.TextAreaRect.Width);
+        Assert.Equal(250, loaded.TextAreaRect.Height);
     }
 
     [Fact]

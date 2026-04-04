@@ -72,6 +72,7 @@ private List<Profile> _profiles = new();
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         base.OnClosing(e);
+        try { App.OllamaManager?.Dispose(); } catch { }
         Environment.Exit(0);
     }
 
@@ -930,7 +931,13 @@ private List<Profile> _profiles = new();
 
     private async void OnExportRequested(object? sender, EventArgs e)
     {
-        var dialog = new ExportDialog(_logEntries);
+        // 選択があればそれだけ、なければ全件
+        var selectedIds = _selectedCards.Select(c => c.EntryId).ToHashSet();
+        var entries = selectedIds.Count > 0
+            ? _logEntries.Where(e => selectedIds.Contains(e.Id)).ToList()
+            : _logEntries;
+
+        var dialog = new ExportDialog(entries);
         await dialog.ShowDialog<object?>(this);
     }
 

@@ -72,7 +72,11 @@ public partial class App : Application
         // 5. OCRエンジン（保存済み設定を反映）
         var savedEndpoint = Storage.GetSetting("ollama.endpoint") ?? "http://localhost:11434";
         var savedModel = Storage.GetSetting("ollama.model") ?? "glm-ocr:latest";
-        OllamaManager = new OllamaManager();
+        // 同梱Ollama or システムインストール版
+        var bundledOllama = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ollama",
+            OperatingSystem.IsWindows() ? "ollama.exe" : "ollama");
+        var ollamaPath = File.Exists(bundledOllama) ? bundledOllama : "ollama";
+        OllamaManager = new OllamaManager(ollamaPath);
         OcrEngine = new QwenVlClient(savedEndpoint, savedModel);
         _ = InitializeOcrAsync();
 

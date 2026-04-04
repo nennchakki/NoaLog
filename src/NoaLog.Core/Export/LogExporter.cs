@@ -20,12 +20,11 @@ public static class LogExporter
             var entry = entries[i];
             var header = string.IsNullOrEmpty(entry.DisplayOrg)
                 ? entry.DisplayName
-                : $"{entry.DisplayName} / {entry.DisplayOrg}";
+                : $"{entry.DisplayName} {entry.DisplayOrg}";
 
-            sb.AppendLine($"[{entry.Timestamp:yyyy-MM-dd HH:mm:ss}] {header}");
+            sb.AppendLine(header);
             sb.AppendLine(entry.DisplayBody);
 
-            // 最後のエントリ以外は空行を挟む
             if (i < entries.Count - 1)
                 sb.AppendLine();
         }

@@ -65,6 +65,8 @@ public partial class App : Application
         ScreenCapture = new WindowsScreenCapture();
         HotkeyManager = new WindowsHotkeyManager();
 #else
+        // macOS: 起動時にアクセシビリティ権限を要求（ホットキー監視に必要）
+        RequestAccessibilityPermission();
         ScreenCapture = new MacScreenCapture();
         HotkeyManager = new MacHotkeyManager();
 #endif
@@ -115,6 +117,44 @@ public partial class App : Application
         catch (Exception ex)
         {
             Console.Error.WriteLine($"OCR init failed: {ex.Message}");
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")]
+    private static extern bool AXIsProcessTrustedWithOptions(IntPtr options);
+
+    [System.Runtime.InteropServices.DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+    private static extern IntPtr CFDictionaryCreate(IntPtr allocator, IntPtr[] keys, IntPtr[] values, long numValues, IntPtr keyCallBacks, IntPtr valueCallBacks);
+
+    [System.Runtime.InteropServices.DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+    private static extern IntPtr CFStringCreateWithCString(IntPtr allocator, string str, int encoding);
+
+    [System.Runtime.InteropServices.DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+    private static extern void CFRelease(IntPtr obj);
+
+    private static readonly IntPtr kCFBooleanTrue = new(0x01);
+
+    private static void RequestAccessibilityPermission()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        try
+        {
+            // kAXTrustedCheckOptionPrompt = true → 未許可なら権限ダイアログを表示
+            var key = CFStringCreateWithCString(IntPtr.Zero, "AXTrustedCheckOptionPrompt", 0x08000100);
+            var keys = new[] { key };
+            var values = new[] { kCFBooleanTrue };
+            var options = CFDictionaryCreate(IntPtr.Zero, keys, values, 1, IntPtr.Zero, IntPtr.Zero);
+
+            bool trusted = AXIsProcessTrustedWithOptions(options);
+            Console.Error.WriteLine($"[macOS] Accessibility permission: {(trusted ? "granted" : "not granted — dialog shown")}");
+
+            CFRelease(options);
+            CFRelease(key);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[macOS] Accessibility check failed: {ex.Message}");
         }
     }
 

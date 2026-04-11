@@ -206,12 +206,10 @@ public class HaloIndicator : Control
         // Base radius is half of DEFAULT_SIZE (48/2 = 24)
         double baseRadius = DefaultSize / 2.0;
 
-        // Ring radii as ratios of base radius
+        // アイコンと同じ比率
         double outerRadius = 0.92 * baseRadius;
-        double innerRadius = 0.78 * baseRadius;
-        double centerRadius = 0.35 * baseRadius;
+        double innerRadius = 0.45 * baseRadius;
 
-        // Apply transforms for Success (pulse) and Failed (fade)
         var state = State;
 
         using var _ = state switch
@@ -224,60 +222,24 @@ public class HaloIndicator : Control
             _ => default(DrawingContext.PushedState),
         };
 
-        // Pens
+        // 1. 白い外側リング
         var whitePen = new Pen(new SolidColorBrush(WhiteColor), OuterRingWidth);
-        var accentLightPen = new Pen(new SolidColorBrush(AccentLightColor), 2.0);
-        var accentPen = new Pen(new SolidColorBrush(AccentColor), 2.0);
-
-        // 1. White outer ring
         context.DrawEllipse(null, whitePen, center, outerRadius, outerRadius);
 
-        // 2. Light blue inner ring
+        // 2. ライトブルー内側リング
+        var accentLightPen = new Pen(new SolidColorBrush(AccentLightColor), 2.0);
         context.DrawEllipse(null, accentLightPen, center, innerRadius, innerRadius);
 
-        // 3. Blue center ring (not filled)
-        context.DrawEllipse(null, accentPen, center, centerRadius, centerRadius);
-
-        // 4. Blue segment between outer and inner ring
-        // The segment is a thick arc at the average radius between outer and inner rings
-        double segmentRadius = (outerRadius + innerRadius) / 2.0;
-        double segmentPenWidth = outerRadius - innerRadius + OuterRingWidth;
-
-        var segmentPen = new Pen(new SolidColorBrush(AccentColor), segmentPenWidth)
+        // 3. 青いアーク（外側リングに沿って回転）
+        double segmentRadius = outerRadius;
+        var segmentPen = new Pen(new SolidColorBrush(AccentColor), OuterRingWidth)
         {
             LineCap = PenLineCap.Flat,
         };
 
-        // In Python/Qt: start_angle = 90*16, span_angle = 90*16
-        // That means: start at 90° (top/12 o'clock), sweep counter-clockwise 90° to 180° (9 o'clock)
-        // In Avalonia math coords: 90° is straight up (negative Y), 180° is left (negative X)
-        // We draw from 90° to 180° counter-clockwise in standard math orientation.
-        //
-        // In screen coordinates (Y flipped):
-        //   Math 90° (up) = screen -90° or 270°
-        //   Math 180° (left) = screen 180°
-        // So in screen coords we go clockwise from 270° to 180°... but it's easier to just
-        // compute the points directly.
-        //
-        // Qt angles: 0° = 3 o'clock, 90° = 12 o'clock, counter-clockwise positive
-        // For Avalonia (screen coords, Y down): 0° = 3 o'clock, angles go clockwise
-        //   Qt 90° (12 o'clock) = Avalonia -90° = 270°
-        //   Qt 180° (9 o'clock) = Avalonia -180° = 180°
-        //
-        // The arc from 12 o'clock to 9 o'clock going counter-clockwise (in Qt)
-        // = arc from 270° to 180° going counter-clockwise in screen coords
-        // = arc from 270° sweeping -90° in screen coords
-        // But ArcTo uses sweep direction, so:
-        //   Start at 270° (top), end at 180° (left), sweep CounterClockwise
-        //   OR equivalently: start at 270°, end at 180°, counter-clockwise (going through 270->180)
-        //   That's actually clockwise if going 270->360->0->...->180, so we want CounterClockwise
-        //   going 270->225->180 which is the short way.
-
-        // During Processing, add rotation offset
         double rotationOffset = (state == HaloState.Processing) ? _rotationAngle : 0.0;
 
-        // Start angle: 270° in screen coords (12 o'clock) + rotation
-        // End angle: 180° in screen coords (9 o'clock) + rotation
+        // 12時→9時（90度分）
         double startAngleScreen = 270.0 + rotationOffset;
         double endAngleScreen = 180.0 + rotationOffset;
 

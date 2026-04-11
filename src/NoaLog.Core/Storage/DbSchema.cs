@@ -35,7 +35,7 @@ public static class DbSchema
             edited_speaker_org  TEXT,
             edited_body_text    TEXT,
             capture_path    TEXT,
-            ocr_engine      TEXT NOT NULL DEFAULT 'manga_ocr_onnx',
+            ocr_engine      TEXT NOT NULL DEFAULT 'glm-ocr:latest',
             ocr_confidence  REAL DEFAULT 0.0,
             is_deleted      INTEGER NOT NULL DEFAULT 0,
             is_duplicate    INTEGER NOT NULL DEFAULT 0,

@@ -7,7 +7,8 @@ public record CaptureRequest(
     string ProfileId,
     Rect TextAreaRect,
     Rect? NarratorRect,
-    string LogType = "dialogue" // "dialogue" or "narration"
+    string LogType = "dialogue",
+    string? NarratorLabel = null
 );
 
 public class CaptureQueue

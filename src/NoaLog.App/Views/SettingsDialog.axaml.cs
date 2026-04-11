@@ -63,6 +63,11 @@ public partial class SettingsDialog : Window
         _narratorHotkeyKeys = new List<string>(narratorSetting.Split('+'));
         if (narratorBox != null) narratorBox.Text = narratorSetting;
 
+        // 語り部の名前
+        var narratorLabelBox = this.FindControl<TextBox>("NarratorLabelBox");
+        var savedNarrator = _storage?.GetSetting("narrator.label") ?? "語り部";
+        if (narratorLabelBox != null) narratorLabelBox.Text = savedNarrator;
+
         // Inference Log
         var inferenceLog = _storage?.GetSetting("inference_log.visible");
         if (inferenceLogToggle != null)
@@ -72,7 +77,7 @@ public partial class SettingsDialog : Window
         var endpointBox = this.FindControl<TextBox>("OllamaEndpointBox");
         var currentModelLabel = this.FindControl<TextBlock>("CurrentModelLabel");
         var savedEndpoint = _storage?.GetSetting("ollama.endpoint") ?? "http://localhost:11434";
-        var savedModel = _storage?.GetSetting("ollama.model") ?? "qwen3-vl:4b";
+        var savedModel = _storage?.GetSetting("ollama.model") ?? "glm-ocr:latest";
 
         if (endpointBox != null) endpointBox.Text = savedEndpoint;
         if (currentModelLabel != null) currentModelLabel.Text = savedModel;
@@ -162,6 +167,12 @@ public partial class SettingsDialog : Window
             _storage.SetSetting("hotkey.narrator", string.Join("+", _narratorHotkeyKeys));
 
             var inferenceLogToggle = this.FindControl<ToggleSwitch>("InferenceLogToggle");
+            // 語り部の名前
+            var narratorLabelBox = this.FindControl<TextBox>("NarratorLabelBox");
+            var narratorLabel = narratorLabelBox?.Text?.Trim();
+            if (!string.IsNullOrEmpty(narratorLabel))
+                _storage.SetSetting("narrator.label", narratorLabel);
+
             _storage.SetSetting("inference_log.visible", inferenceLogToggle?.IsChecked?.ToString() ?? "False");
 
             // MainWindowの推論ログパネル表示を即時反映
@@ -173,7 +184,7 @@ public partial class SettingsDialog : Window
             if (endpointBox?.Text is { } ep && !string.IsNullOrWhiteSpace(ep))
             {
                 _storage.SetSetting("ollama.endpoint", ep.Trim());
-                if (App.OcrEngine is QwenVlClient qwen)
+                if (App.OcrEngine is OllamaOcrClient qwen)
                     qwen.SetBaseUrl(ep.Trim());
             }
         }
@@ -294,7 +305,7 @@ public partial class SettingsDialog : Window
             using var stream = await response.Content.ReadAsStreamAsync();
             using var doc = await JsonDocument.ParseAsync(stream);
 
-            var currentModel = _storage?.GetSetting("ollama.model") ?? "qwen3-vl:4b";
+            var currentModel = _storage?.GetSetting("ollama.model") ?? "glm-ocr:latest";
 
             if (modelListPanel != null)
             {
@@ -371,7 +382,7 @@ public partial class SettingsDialog : Window
         var currentModelLabel = this.FindControl<TextBlock>("CurrentModelLabel");
         if (currentModelLabel != null) currentModelLabel.Text = modelName;
 
-        if (App.OcrEngine is QwenVlClient qwen)
+        if (App.OcrEngine is OllamaOcrClient qwen)
         {
             await qwen.SwitchModelAsync(modelName);
             App.NotifyOcrEngineChanged();

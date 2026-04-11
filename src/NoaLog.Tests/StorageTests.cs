@@ -72,7 +72,7 @@ public class StorageTests : IDisposable
             SpeakerName = "ミカ",
             SpeakerOrg = "ゲヘナ",
             BodyText = "先生、こんにちは！",
-            OcrEngine = "manga_ocr_onnx",
+            OcrEngine = "glm-ocr:latest",
         };
 
         _storage.InsertLogEntry(entry);

@@ -41,16 +41,25 @@ public static class LogExporter
         for (var i = 0; i < entries.Count; i++)
         {
             var entry = entries[i];
-            var header = string.IsNullOrEmpty(entry.DisplayOrg)
-                ? entry.DisplayName
-                : $"{entry.DisplayName} / {entry.DisplayOrg}";
 
-            sb.AppendLine($"## {header}");
-            sb.AppendLine($"*{entry.Timestamp:yyyy-MM-dd HH:mm:ss}*");
-            sb.AppendLine();
-            sb.AppendLine(entry.DisplayBody);
+            if (entry.LogType == LogType.Narration)
+            {
+                // ナレーション — 引用ブロックで表現
+                foreach (var line in entry.DisplayBody.Split('\n'))
+                    sb.AppendLine($"> {line}");
+            }
+            else
+            {
+                // セリフ — 話者名を見出しに
+                var header = string.IsNullOrEmpty(entry.DisplayOrg)
+                    ? entry.DisplayName
+                    : $"{entry.DisplayName} {entry.DisplayOrg}";
 
-            // 最後のエントリ以外はセパレータを挟む
+                sb.AppendLine($"## {header}");
+                sb.AppendLine();
+                sb.AppendLine(entry.DisplayBody);
+            }
+
             if (i < entries.Count - 1)
             {
                 sb.AppendLine();

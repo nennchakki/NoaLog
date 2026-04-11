@@ -23,10 +23,7 @@ public class CaptureWorker
     private int _nextSequence;
     private int _nextEmitSequence;
 
-    // Event for UI notification when a new log entry is created
     public event EventHandler<LogEntry>? EntryCreated;
-
-    // Event for UI notification when processing fails
     public event EventHandler<Exception>? ProcessingFailed;
 
     public CaptureWorker(CaptureQueue queue, IScreenCapture capture, IOcrEngine ocr, SqliteStorage storage, DictProcessor? dictProcessor = null)
@@ -76,7 +73,7 @@ public class CaptureWorker
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"CaptureWorker error: {ex.Message}");
+                    Console.Error.WriteLine($"[CaptureWorker] #{seq} Error: {ex.Message}");
                     ProcessingFailed?.Invoke(this, ex);
                 }
                 finally
@@ -86,7 +83,8 @@ public class CaptureWorker
             }, ct));
         }
 
-        try { await Task.WhenAll(tasks); } catch { }
+        try { await Task.WhenAll(tasks); }
+        catch (OperationCanceledException) { }
     }
 
     private void EmitInOrder(int seq, LogEntry entry)
@@ -109,26 +107,38 @@ public class CaptureWorker
     {
         Console.Error.WriteLine($"[CaptureWorker] #{seq} Processing: TextArea={request.TextAreaRect}, Engine={_ocr.EngineName}");
 
-        var qwen = _ocr as QwenVlClient;
-
-        // 1. テキスト領域（名前+本文）をキャプチャ → OCR1回
+        // テキスト領域（名前+本文）をキャプチャ → OCR1回
         var textImage = await _capture.CaptureRegionAsync(request.TextAreaRect, ct);
-        Console.Error.WriteLine($"[CaptureWorker] #{seq} TextArea capture: {textImage.Length} bytes");
+        Console.Error.WriteLine($"[CaptureWorker] #{seq} Captured: {textImage.Length} bytes");
 
-        var result = qwen != null
-            ? await qwen.RecognizeAsync(textImage, $"#{seq}", ct)
+        // ラベル付きOCR（OllamaOcrClientの場合）
+        var ocrClient = _ocr as OllamaOcrClient;
+        var result = ocrClient != null
+            ? await ocrClient.RecognizeAsync(textImage, $"#{seq}", ct)
             : await _ocr.RecognizeAsync(textImage, ct);
 
-        // 2. テキストを話者名と本文に分離（最初の行がSpeaker、残りがBody）
-        var (speaker, body) = SplitSpeakerAndBody(result.Text);
+        // テキストを話者名と本文に分離
+        var isNarration = request.LogType == "narration";
+        string speaker, body;
 
-        // 3. Build log entry
+        if (isNarration)
+        {
+            // ナレーション: 全テキストをBody、SpeakerはNarratorLabel
+            speaker = request.NarratorLabel ?? "語り部";
+            body = result.Text.Trim();
+        }
+        else
+        {
+            // セリフ: 最初の行がSpeaker、残りがBody
+            (speaker, body) = SplitSpeakerAndBody(result.Text);
+        }
+
         var entry = new LogEntry
         {
             Id = Guid.NewGuid().ToString(),
             ProfileId = request.ProfileId,
             Timestamp = DateTime.UtcNow,
-            LogType = request.LogType == "narration" ? LogType.Narration : LogType.Dialogue,
+            LogType = isNarration ? LogType.Narration : LogType.Dialogue,
             RawHeader = speaker,
             RawBody = body,
             SpeakerName = speaker,
@@ -136,13 +146,11 @@ public class CaptureWorker
             OcrEngine = _ocr.EngineName,
         };
 
-        // 4. Post-process OCR results via dictionary
         _dictProcessor?.ProcessEntry(entry);
-
         return entry;
     }
 
-private static (string Speaker, string Body) SplitSpeakerAndBody(string text)
+    private static (string Speaker, string Body) SplitSpeakerAndBody(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
             return ("", "");
@@ -153,7 +161,6 @@ private static (string Speaker, string Body) SplitSpeakerAndBody(string text)
         if (lines.Length == 1)
             return ("", lines[0].Trim());
 
-        // 最初の行がSpeaker、残りがBody
         return (lines[0].Trim(), string.Join("\n", lines[1..]).Trim());
     }
 }

@@ -15,7 +15,7 @@ public class LogEntry
     public string? EditedSpeakerOrg { get; set; }
     public string? EditedBodyText { get; set; }
     public string? CapturePath { get; set; }
-    public string OcrEngine { get; set; } = "manga_ocr_onnx";
+    public string OcrEngine { get; set; } = "glm-ocr:latest";
     public double OcrConfidence { get; set; }
     public bool IsDeleted { get; set; }
     public bool IsDuplicate { get; set; }

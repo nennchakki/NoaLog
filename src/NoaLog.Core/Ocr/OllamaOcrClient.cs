@@ -5,9 +5,9 @@ using NoaLog.Core.Models;
 namespace NoaLog.Core.Ocr;
 
 /// <summary>
-/// Ollama HTTP API経由でQwen3-VLモデルを使用するOCRエンジン。
+/// Ollama /api/chat 経由でVLMモデルを使用するOCRエンジン。
 /// </summary>
-public class QwenVlClient : IOcrEngine, IDisposable
+public class OllamaOcrClient : IOcrEngine, IDisposable
 {
     private const string DefaultModelName = "glm-ocr:latest";
     private const string Prompt =
@@ -33,19 +33,16 @@ public class QwenVlClient : IOcrEngine, IDisposable
     /// <summary>推論開始時に発火（ラベル: "#0" 等）</summary>
     public event Action<string>? InferenceStarted;
 
-    /// <summary>推論中のトークンを1つ受信するたびに発火</summary>
-    public event Action<string>? TokenReceived;
-
     /// <summary>推論完了時に発火（最終テキスト）</summary>
     public event Action<string>? InferenceCompleted;
 
-    public QwenVlClient(string baseUrl = "http://localhost:11434", string modelName = DefaultModelName)
+    public OllamaOcrClient(string baseUrl = "http://localhost:11434", string modelName = DefaultModelName)
     {
         _baseUrl = baseUrl.TrimEnd('/');
         _modelName = modelName;
         _httpClient = new HttpClient
         {
-            Timeout = System.Threading.Timeout.InfiniteTimeSpan,
+            Timeout = TimeSpan.FromSeconds(300),
         };
     }
 
@@ -87,8 +84,8 @@ public class QwenVlClient : IOcrEngine, IDisposable
 
             if (!modelFound) return;
 
-            // 2. ウォームアップ（GPU VRAMにモデルをロード）— /api/chat + think:false
-            Console.Error.WriteLine("[QwenVL] Warmup: loading model into GPU...");
+            // 2. ウォームアップ（GPU VRAMにモデルをロード）
+            Console.Error.WriteLine($"[OCR] Warmup: loading {_modelName} into GPU...");
             var warmupBody = JsonSerializer.Serialize(new
             {
                 model = _modelName,
@@ -101,13 +98,13 @@ public class QwenVlClient : IOcrEngine, IDisposable
             });
             using var warmupContent = new StringContent(warmupBody, Encoding.UTF8, "application/json");
             await _httpClient.PostAsync($"{_baseUrl}/api/chat", warmupContent, cancellationToken).ConfigureAwait(false);
-            Console.Error.WriteLine("[QwenVL] Warmup complete.");
+            Console.Error.WriteLine("[OCR] Warmup complete.");
 
             _isReady = true;
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[QwenVL] InitializeAsync failed: {ex.Message}");
+            Console.Error.WriteLine($"[OCR] InitializeAsync failed: {ex.Message}");
         }
     }
 
@@ -125,11 +122,10 @@ public class QwenVlClient : IOcrEngine, IDisposable
         {
             var regionLabel = label ?? "OCR";
             InferenceStarted?.Invoke(regionLabel);
-            Console.Error.WriteLine($"[QwenVL] RecognizeAsync [{regionLabel}]: imageData={imageData.Length} bytes");
+            Console.Error.WriteLine($"[OCR] RecognizeAsync [{regionLabel}]: {imageData.Length} bytes, model={_modelName}");
 
             var base64Image = Convert.ToBase64String(imageData);
 
-            // /api/chat を使用（think: false はトップレベルでのみ有効）
             var requestBody = JsonSerializer.Serialize(new
             {
                 model = _modelName,
@@ -155,7 +151,6 @@ public class QwenVlClient : IOcrEngine, IDisposable
             using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            // /api/chat のレスポンス: { "message": { "content": "..." } }
             var text = "";
             if (doc.RootElement.TryGetProperty("message", out var message) &&
                 message.TryGetProperty("content", out var contentProp))
@@ -164,13 +159,13 @@ public class QwenVlClient : IOcrEngine, IDisposable
             }
 
             InferenceCompleted?.Invoke(text);
-            Console.Error.WriteLine($"[QwenVL] Result [{regionLabel}]: '{text}'");
+            Console.Error.WriteLine($"[OCR] Result [{regionLabel}]: '{text}'");
 
             return new OcrResult(text, FixedConfidence);
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[QwenVL] Error: {ex.Message}");
+            Console.Error.WriteLine($"[OCR] Error: {ex.Message}");
             InferenceCompleted?.Invoke("");
             return new OcrResult("", 0.0);
         }

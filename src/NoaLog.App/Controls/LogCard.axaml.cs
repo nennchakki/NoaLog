@@ -117,6 +117,9 @@ public partial class LogCard : UserControl
         remove => RemoveHandler(CardClickedEvent, value);
     }
 
+    /// <summary>チェックボックストグル時に発火（常にマルチセレクト扱い）</summary>
+    public event EventHandler<RoutedEventArgs>? CheckBoxToggled;
+
     // --- Private references ---
     private Border? _cardBorder;
     private TextBlock? _speakerName;
@@ -157,14 +160,14 @@ public partial class LogCard : UserControl
         _lowConfBadge = this.FindControl<Border>("LowConfBadge");
         _selectCheckBox = this.FindControl<CheckBox>("SelectCheckBox");
 
-        // CheckBox連動
+        // CheckBox連動（クリックは常にマルチセレクト扱い）
         if (_selectCheckBox != null)
         {
             _selectCheckBox.IsCheckedChanged += (_, _) =>
             {
                 if (_suppressCheckBoxSync) return;
                 IsCardSelected = _selectCheckBox.IsChecked == true;
-                RaiseEvent(new RoutedEventArgs(CardClickedEvent));
+                CheckBoxToggled?.Invoke(this, new RoutedEventArgs());
             };
         }
 

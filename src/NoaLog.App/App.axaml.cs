@@ -77,7 +77,7 @@ public partial class App : Application
             OperatingSystem.IsWindows() ? "ollama.exe" : "ollama");
         var ollamaPath = File.Exists(bundledOllama) ? bundledOllama : "ollama";
         OllamaManager = new OllamaManager(ollamaPath);
-        OcrEngine = new QwenVlClient(savedEndpoint, savedModel);
+        OcrEngine = new OllamaOcrClient(savedEndpoint, savedModel);
         _ = InitializeOcrAsync();
 
         // 6. キャプチャパイプライン
@@ -103,7 +103,7 @@ public partial class App : Application
     {
         try
         {
-            var modelName = (OcrEngine as QwenVlClient)?.ModelName ?? "glm-ocr:latest";
+            var modelName = (OcrEngine as OllamaOcrClient)?.ModelName ?? "glm-ocr:latest";
             await OllamaManager!.StartServerAsync(CancellationToken.None);
             if (!await OllamaManager.IsModelAvailableAsync(modelName, CancellationToken.None))
             {

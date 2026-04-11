@@ -49,13 +49,15 @@ public partial class MainWindow : Window
     private ScrollViewer? _inferenceLogScroll;
 
     private readonly SqliteStorage _storage;
-private List<Profile> _profiles = new();
+    private List<Profile> _profiles = new();
     private Profile? _currentProfile;
     private List<LogEntry> _logEntries = new();
     private LogCard? _selectedCard;
     private LogEntry? _selectedEntry;
     private HashSet<LogCard> _selectedCards = new();
     private bool _isDragSelecting;
+    private Point _dragStartPoint;
+    private const double DragThreshold = 8;
     private ScrollViewer? _logScrollViewer;
     private List<int> _matchIndices = new();
     private int _currentMatchIndex = -1;
@@ -120,7 +122,7 @@ private List<Profile> _profiles = new();
         if (_inferenceLogPanel != null && string.Equals(showLog, "True", StringComparison.OrdinalIgnoreCase))
             _inferenceLogPanel.IsVisible = true;
 
-        // QwenVlClientのストリーミングイベント購読
+        // OCRクライアントのイベント購読
         SubscribeInferenceEvents();
 
         // OCRエンジン切替イベント購読
@@ -247,6 +249,7 @@ private List<Profile> _profiles = new();
             };
 
             card.CardClicked += OnLogCardClicked;
+            card.CheckBoxToggled += OnLogCardCheckBoxToggled;
             _logList.Items.Add(card);
         }
     }
@@ -296,6 +299,17 @@ private List<Profile> _profiles = new();
         }
     }
 
+    private void OnLogCardCheckBoxToggled(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not LogCard card) return;
+
+        // チェックボックスはマルチセレクト専用（他の選択を解除しない）
+        if (card.IsCardSelected)
+            _selectedCards.Add(card);
+        else
+            _selectedCards.Remove(card);
+    }
+
     private void SelectAllCards()
     {
         if (_logList == null) return;
@@ -343,14 +357,27 @@ private List<Profile> _profiles = new();
 
     private void OnLogListPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        _isDragSelecting = true;
+        _isDragSelecting = false;
+        _dragStartPoint = e.GetPosition(_logList);
     }
 
     private void OnLogListPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (!_isDragSelecting || _logList == null || _logScrollViewer == null) return;
+        if (_logList == null || _logScrollViewer == null) return;
 
         var pos = e.GetPosition(_logList);
+
+        // ドラッグ閾値を超えるまでは選択開始しない
+        if (!_isDragSelecting)
+        {
+            var dx = Math.Abs(pos.X - _dragStartPoint.X);
+            var dy = Math.Abs(pos.Y - _dragStartPoint.Y);
+            if (dx < DragThreshold && dy < DragThreshold) return;
+
+            // ドラッグ開始 — ポインタが押されている場合のみ
+            if (!e.GetCurrentPoint(_logList).Properties.IsLeftButtonPressed) return;
+            _isDragSelecting = true;
+        }
 
         // カーソル位置のカードを選択
         foreach (var item in _logList.Items)
@@ -487,8 +514,12 @@ private List<Profile> _profiles = new();
                     OnCaptureClick(null, e);
                     break;
                 case Key.A:
-                    e.Handled = true;
-                    SelectAllCards();
+                    // テキスト入力中はテキスト全選択に譲る
+                    if (!IsTextBoxFocused())
+                    {
+                        e.Handled = true;
+                        SelectAllCards();
+                    }
                     break;
                 case Key.N:
                     e.Handled = true;
@@ -503,7 +534,8 @@ private List<Profile> _profiles = new();
             DeselectAllCards();
         }
 
-        if (e.Key == Key.Back || e.Key == Key.Delete)
+        // テキスト入力中はカード削除しない
+        if ((e.Key == Key.Back || e.Key == Key.Delete) && !IsTextBoxFocused())
         {
             e.Handled = true;
             DeleteSelectedCards();
@@ -656,11 +688,13 @@ private List<Profile> _profiles = new();
         if (_haloIndicator != null)
             _haloIndicator.State = HaloState.Processing;
 
+        var narratorLabel = _storage.GetSetting("narrator.label") ?? _currentProfile.NarratorLabel;
         var request = new CaptureRequest(
             _currentProfile.Id,
             _currentProfile.NarratorRect,
             null,
-            "narration"
+            "narration",
+            narratorLabel
         );
         await App.CaptureQueue.EnqueueAsync(request);
     }
@@ -826,13 +860,8 @@ private List<Profile> _profiles = new();
         if (_selectedEntry?.Id == entry.Id)
             _detailPanel?.SetEntry(entry);
 
-        // 次のマッチへ移動
-        if (_currentMatchIndex < _matchIndices.Count - 1)
-        {
-            _currentMatchIndex++;
-            _searchBar?.UpdateMatchCount(_matchIndices.Count, _currentMatchIndex);
-            OnNavigateToMatch(null, _currentMatchIndex);
-        }
+        // マッチリストを再計算して次へ移動
+        RefreshMatchIndices(e.Query, e.IsRegex);
     }
 
     private void OnReplaceAllRequested(object? sender, ReplaceEventArgs e)
@@ -853,6 +882,47 @@ private List<Profile> _profiles = new();
             _selectedCard = null;
             _selectedEntry = null;
         }
+    }
+
+    private void RefreshMatchIndices(string query, bool isRegex)
+    {
+        var matchIndices = new List<int>();
+        for (int i = 0; i < _logEntries.Count; i++)
+        {
+            var entry = _logEntries[i];
+            bool match;
+
+            if (isRegex)
+            {
+                try
+                {
+                    var regex = new System.Text.RegularExpressions.Regex(query,
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    match = regex.IsMatch(entry.DisplayName) ||
+                            regex.IsMatch(entry.DisplayOrg) ||
+                            regex.IsMatch(entry.DisplayBody);
+                }
+                catch { match = false; }
+            }
+            else
+            {
+                match = entry.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                        entry.DisplayOrg.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                        entry.DisplayBody.Contains(query, StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (match)
+                matchIndices.Add(i);
+        }
+
+        _matchIndices = matchIndices;
+        // 現在位置を維持するか、次に進める
+        if (_currentMatchIndex >= _matchIndices.Count)
+            _currentMatchIndex = _matchIndices.Count - 1;
+        _searchBar?.UpdateMatchCount(_matchIndices.Count, _currentMatchIndex >= 0 ? _currentMatchIndex : -1);
+
+        if (_currentMatchIndex >= 0)
+            OnNavigateToMatch(null, _currentMatchIndex);
     }
 
     private static bool ReplaceInEntry(LogEntry entry, string query, string replacement, bool isRegex, bool onceOnly)
@@ -959,18 +1029,21 @@ private List<Profile> _profiles = new();
 
     // ── 推論ログパネル ──
 
+    private bool IsTextBoxFocused()
+    {
+        var focused = FocusManager?.GetFocusedElement();
+        return focused is TextBox;
+    }
+
     private void SubscribeInferenceEvents()
     {
-        if (App.OcrEngine is QwenVlClient qwen)
+        if (App.OcrEngine is OllamaOcrClient ocr)
         {
-            qwen.InferenceStarted += label =>
+            ocr.InferenceStarted += label =>
                 Dispatcher.UIThread.Post(() => AppendInferenceLog($"\n[{label}] "));
 
-            qwen.TokenReceived += token =>
-                Dispatcher.UIThread.Post(() => AppendInferenceLog(token));
-
-            qwen.InferenceCompleted += _ =>
-                Dispatcher.UIThread.Post(() => AppendInferenceLog(" ✓\n"));
+            ocr.InferenceCompleted += text =>
+                Dispatcher.UIThread.Post(() => AppendInferenceLog($"{text} ✓\n"));
         }
     }
 

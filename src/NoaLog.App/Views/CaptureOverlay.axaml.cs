@@ -18,8 +18,8 @@ public partial class CaptureOverlay : Window
 
     private static readonly string[] StageInstructions =
     {
-        "ステップ 1/2: テキスト領域を選択（名前+本文）",
-        "ステップ 2/2: 語り部領域を選択 (任意 — S でスキップ)",
+        "ステップ 1/2: テキスト領域を選択（名前+本文）— 余裕を持って大きめに選択してください",
+        "ステップ 2/2: 語り部領域を選択 (任意 — S でスキップ) — 余裕を持って大きめに選択してください",
     };
 
     private static readonly string[] StageLabels =

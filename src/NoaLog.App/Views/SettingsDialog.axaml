@@ -202,7 +202,41 @@
                     </StackPanel>
                 </Border>
 
-                <!-- ═══ Section 2: Inference Log ═══ -->
+                <!-- ═══ Section 2: 語り部設定 ═══ -->
+                <Border Background="{DynamicResource BgPanel}"
+                        BorderBrush="{DynamicResource BorderWarm}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,16">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="語り部設定"
+                                   FontSize="{DynamicResource FontLg}"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimary}" />
+                        <TextBlock Text="Ctrl+N でキャプチャした時の話者名を設定します。"
+                                   FontSize="{DynamicResource FontSm}"
+                                   Foreground="{DynamicResource TextSecondary}" />
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="語り部の名前"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource FontBase}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <TextBox Name="NarratorLabelBox"
+                                     Watermark="語り部"
+                                     MinHeight="36"
+                                     Background="{DynamicResource BgInput}"
+                                     BorderBrush="{DynamicResource BorderInputWarm}"
+                                     BorderThickness="1"
+                                     CornerRadius="{DynamicResource RadiusSm}"
+                                     Padding="10,8"
+                                     FontSize="{DynamicResource FontBase}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ═══ Section 3: Inference Log ═══ -->
                 <Border Background="{DynamicResource BgPanel}"
                         BorderBrush="{DynamicResource BorderWarm}"
                         BorderThickness="1"

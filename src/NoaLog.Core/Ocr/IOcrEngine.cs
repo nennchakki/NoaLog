@@ -4,11 +4,11 @@ namespace NoaLog.Core.Ocr;
 
 /// <summary>
 /// OCRエンジンの共通インターフェース。
-/// 現在はQwenVlClientのみ使用。
+/// 現在はOllamaOcrClientのみ使用。
 /// </summary>
 public interface IOcrEngine
 {
-    /// <summary>エンジン名 (例: "manga_ocr_onnx", "qwen_vl")</summary>
+    /// <summary>エンジン名 (例: "glm-ocr:latest")</summary>
     string EngineName { get; }
 
     /// <summary>エンジンが使用可能かどうか</summary>

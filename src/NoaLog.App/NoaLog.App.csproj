@@ -13,6 +13,7 @@
 <ItemGroup>
     <AvaloniaResource Include="Assets\Fonts\NotoSansJP-Light.otf" />
     <AvaloniaResource Include="Assets\Fonts\NotoSansJP-Regular.otf" />
+    <AvaloniaResource Include="Assets\icon.svg" />
   </ItemGroup>
 
   <!-- モデル・辞書ファイルを出力ディレクトリにコピー -->

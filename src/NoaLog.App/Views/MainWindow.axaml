@@ -8,7 +8,7 @@
         Title="NoaLog"
         Width="1280" Height="800"
         MinWidth="1100" MinHeight="700"
-        Icon="avares://NoaLog/Assets/icon.svg"
+        Icon="avares://NoaLog/Assets/icon.ico"
         Background="{DynamicResource BgLight}">
 
     <Design.DataContext>

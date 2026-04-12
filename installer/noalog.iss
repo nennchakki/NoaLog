@@ -15,6 +15,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
 LicenseFile=LICENSE.txt
+InfoAfterFile=USAGE.txt
 PrivilegesRequired=admin
 
 [Languages]

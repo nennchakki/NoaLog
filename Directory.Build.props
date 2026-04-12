@@ -1,5 +1,5 @@
 <Project>
-  <PropertyGroup Condition="$(RuntimeIdentifier.StartsWith('win'))">
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
     <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
   </PropertyGroup>
 </Project>

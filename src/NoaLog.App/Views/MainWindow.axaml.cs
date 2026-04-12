@@ -12,6 +12,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using NoaLog.App.Controls;
 using NoaLog.Core.Models;
+using NoaLog.Core.Hotkey;
 using NoaLog.Core.Ocr;
 using NoaLog.Core.Pipeline;
 using NoaLog.Core.Storage;
@@ -74,6 +75,9 @@ public partial class MainWindow : Window
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         base.OnClosing(e);
+        if (App.HotkeyManager != null)
+            App.HotkeyManager.HotkeyPressed -= OnGlobalHotkeyPressed;
+        try { App.HotkeyManager?.UnregisterAll(); } catch { }
         try { App.OllamaManager?.Dispose(); } catch { }
         Environment.Exit(0);
     }
@@ -179,6 +183,7 @@ public partial class MainWindow : Window
             _profileCombo.SelectionChanged += OnProfileSelectionChanged;
 
         UpdateHotkeyLabels();
+        RegisterGlobalHotkeys();
         LoadProfiles();
     }
 
@@ -571,6 +576,53 @@ public partial class MainWindow : Window
 
         // プロファイルの領域をDBに保存
         _storage.UpdateProfile(_currentProfile);
+    }
+
+    // ── グローバルホットキー ──
+
+    private void RegisterGlobalHotkeys()
+    {
+        var hk = App.HotkeyManager;
+        if (hk == null) return;
+
+        bool isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+
+        var regionStr = _storage.GetSetting("hotkey.region") ?? (isMac ? "Ctrl+R" : "Ctrl+R");
+        var captureStr = _storage.GetSetting("hotkey.capture") ?? (isMac ? "Ctrl+L" : "Ctrl+L");
+        var narratorStr = _storage.GetSetting("hotkey.narrator") ?? (isMac ? "Ctrl+N" : "Ctrl+N");
+
+        hk.Register("region", ParseHotkeyString(regionStr));
+        hk.Register("capture", ParseHotkeyString(captureStr));
+        hk.Register("narrator", ParseHotkeyString(narratorStr));
+
+        hk.HotkeyPressed += OnGlobalHotkeyPressed;
+    }
+
+    private static Core.Models.Hotkey ParseHotkeyString(string s)
+    {
+        s = s.Replace("⌃", "Ctrl+").Replace("⌥", "Alt+").Replace("⇧", "Shift+").Replace("⌘", "Meta+");
+        var keys = s.Split('+', StringSplitOptions.RemoveEmptyEntries)
+                     .Select(k => k.Trim()).ToList();
+        return new Core.Models.Hotkey(keys);
+    }
+
+    private void OnGlobalHotkeyPressed(object? sender, HotkeyEventArgs e)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            switch (e.Id)
+            {
+                case "region":
+                    OpenCaptureOverlay();
+                    break;
+                case "capture":
+                    OnCaptureClick(null, new RoutedEventArgs());
+                    break;
+                case "narrator":
+                    OnNarratorCaptureClick();
+                    break;
+            }
+        });
     }
 
     // ── ボタンハンドラ ──

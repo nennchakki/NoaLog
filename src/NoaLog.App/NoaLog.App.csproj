@@ -10,10 +10,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
-    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
-  </PropertyGroup>
-
 <ItemGroup>
     <AvaloniaResource Include="Assets\Fonts\NotoSansJP-Light.otf" />
     <AvaloniaResource Include="Assets\Fonts\NotoSansJP-Regular.otf" />

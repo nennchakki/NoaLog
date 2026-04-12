@@ -475,9 +475,9 @@ public partial class MainWindow : Window
         bool isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
         // 設定から読み込み（デフォルト値あり）
-        var regionKey = _storage.GetSetting("hotkey_region") ?? (isMac ? "⌃R" : "Ctrl+R");
-        var captureKey = _storage.GetSetting("hotkey_capture") ?? (isMac ? "⌃L" : "Ctrl+L");
-        var narratorKey = _storage.GetSetting("hotkey_narrator") ?? (isMac ? "⌃N" : "Ctrl+N");
+        var regionKey = _storage.GetSetting("hotkey.region") ?? (isMac ? "⌃R" : "Ctrl+R");
+        var captureKey = _storage.GetSetting("hotkey.capture") ?? (isMac ? "⌃L" : "Ctrl+L");
+        var narratorKey = _storage.GetSetting("hotkey.narrator") ?? (isMac ? "⌃N" : "Ctrl+N");
 
         if (_regionHotkeyLabel != null)
             _regionHotkeyLabel.Text = regionKey;

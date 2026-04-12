@@ -61,15 +61,25 @@ public partial class App : Application
         DictProcessor = new DictProcessor(DictManager);
 
         // 4. プラットフォーム依存サービス
+        if (OperatingSystem.IsWindows())
+        {
 #if WINDOWS
-        ScreenCapture = new WindowsScreenCapture();
-        HotkeyManager = new WindowsHotkeyManager();
-#else
-        // macOS: 起動時にアクセシビリティ権限を要求（ホットキー監視に必要）
-        RequestAccessibilityPermission();
-        ScreenCapture = new MacScreenCapture();
-        HotkeyManager = new MacHotkeyManager();
+            ScreenCapture = new WindowsScreenCapture();
+            HotkeyManager = new WindowsHotkeyManager();
 #endif
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+#if !WINDOWS
+            RequestAccessibilityPermission();
+            ScreenCapture = new MacScreenCapture();
+            HotkeyManager = new MacHotkeyManager();
+#endif
+        }
+
+        // フォールバック
+        ScreenCapture ??= new StubScreenCapture();
+        HotkeyManager ??= new StubHotkeyManager();
 
         // 5. OCRエンジン（保存済み設定を反映）
         var savedEndpoint = Storage.GetSetting("ollama.endpoint") ?? "http://localhost:11434";
@@ -120,6 +130,7 @@ public partial class App : Application
         }
     }
 
+#if !WINDOWS
     [System.Runtime.InteropServices.DllImport("/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")]
     private static extern bool AXIsProcessTrustedWithOptions(IntPtr options);
 
@@ -140,7 +151,6 @@ public partial class App : Application
 
         try
         {
-            // kAXTrustedCheckOptionPrompt = true → 未許可なら権限ダイアログを表示
             var key = CFStringCreateWithCString(IntPtr.Zero, "AXTrustedCheckOptionPrompt", 0x08000100);
             var keys = new[] { key };
             var values = new[] { kCFBooleanTrue };
@@ -157,6 +167,7 @@ public partial class App : Application
             Console.Error.WriteLine($"[macOS] Accessibility check failed: {ex.Message}");
         }
     }
+#endif
 
     private void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs e)
     {

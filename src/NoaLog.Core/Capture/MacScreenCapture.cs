@@ -1,3 +1,4 @@
+#if !WINDOWS
 using System.Diagnostics;
 using NoaLog.Core.Models;
 
@@ -75,3 +76,5 @@ public class MacScreenCapture : IScreenCapture
         }
     }
 }
+
+#endif

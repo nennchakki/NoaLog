@@ -1,3 +1,4 @@
+#if !WINDOWS
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -335,3 +336,4 @@ public sealed class MacHotkeyManager : IHotkeyManager, IDisposable
         _tapReady.Dispose();
     }
 }
+#endif

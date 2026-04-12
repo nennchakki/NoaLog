@@ -15,6 +15,7 @@ public sealed class WindowsHotkeyManager : IHotkeyManager
 
     private const int WM_HOTKEY = 0x0312;
     private const int WM_QUIT = 0x0012;
+    private const uint WM_USER_EXECUTE = 0x0400 + 1;
     private const uint MOD_ALT = 0x0001;
     private const uint MOD_CONTROL = 0x0002;
     private const uint MOD_SHIFT = 0x0004;
@@ -148,6 +149,7 @@ public sealed class WindowsHotkeyManager : IHotkeyManager
     private readonly object _lock = new();
     private readonly Dictionary<int, string> _registeredHotkeys = new();
     private readonly Dictionary<string, int> _idToAtom = new();
+    private readonly ConcurrentQueue<Action> _pendingActions = new();
     private int _nextAtomId = 1;
 
     private IntPtr _hwnd;
@@ -243,6 +245,13 @@ public sealed class WindowsHotkeyManager : IHotkeyManager
             return IntPtr.Zero;
         }
 
+        if (msg == WM_USER_EXECUTE)
+        {
+            while (_pendingActions.TryDequeue(out var action))
+                action();
+            return IntPtr.Zero;
+        }
+
         return DefWindowProc(hWnd, msg, wParam, lParam);
     }
 
@@ -254,49 +263,76 @@ public sealed class WindowsHotkeyManager : IHotkeyManager
         if (!TryParseHotkey(hotkey, out var modifiers, out var vk))
             return false;
 
-        lock (_lock)
+        var tcs = new TaskCompletionSource<bool>();
+
+        _pendingActions.Enqueue(() =>
         {
-            // 既に同じ id で登録済みなら先に解除
-            if (_idToAtom.ContainsKey(id))
-                UnregisterCore(id);
+            lock (_lock)
+            {
+                if (_idToAtom.ContainsKey(id))
+                    UnregisterCore(id);
 
-            var atomId = _nextAtomId++;
+                var atomId = _nextAtomId++;
 
-            if (!RegisterHotKey(_hwnd, atomId, modifiers, vk))
-                return false;
+                if (!RegisterHotKey(_hwnd, atomId, modifiers, vk))
+                {
+                    tcs.SetResult(false);
+                    return;
+                }
 
-            _registeredHotkeys[atomId] = id;
-            _idToAtom[id] = atomId;
-            return true;
-        }
+                _registeredHotkeys[atomId] = id;
+                _idToAtom[id] = atomId;
+                tcs.SetResult(true);
+            }
+        });
+
+        PostMessage(_hwnd, WM_USER_EXECUTE, IntPtr.Zero, IntPtr.Zero);
+        return tcs.Task.GetAwaiter().GetResult();
     }
 
     public bool Unregister(string id)
     {
-        if (_disposed)
+        if (_disposed || _hwnd == IntPtr.Zero)
             return false;
 
-        lock (_lock)
+        var tcs = new TaskCompletionSource<bool>();
+
+        _pendingActions.Enqueue(() =>
         {
-            return UnregisterCore(id);
-        }
+            lock (_lock)
+            {
+                tcs.SetResult(UnregisterCore(id));
+            }
+        });
+
+        PostMessage(_hwnd, WM_USER_EXECUTE, IntPtr.Zero, IntPtr.Zero);
+        return tcs.Task.GetAwaiter().GetResult();
     }
 
     public void UnregisterAll()
     {
-        if (_disposed)
+        if (_disposed || _hwnd == IntPtr.Zero)
             return;
 
-        lock (_lock)
-        {
-            foreach (var atomId in _registeredHotkeys.Keys.ToList())
-            {
-                UnregisterHotKey(_hwnd, atomId);
-            }
+        var tcs = new TaskCompletionSource<bool>();
 
-            _registeredHotkeys.Clear();
-            _idToAtom.Clear();
-        }
+        _pendingActions.Enqueue(() =>
+        {
+            lock (_lock)
+            {
+                foreach (var atomId in _registeredHotkeys.Keys.ToList())
+                {
+                    UnregisterHotKey(_hwnd, atomId);
+                }
+
+                _registeredHotkeys.Clear();
+                _idToAtom.Clear();
+                tcs.SetResult(true);
+            }
+        });
+
+        PostMessage(_hwnd, WM_USER_EXECUTE, IntPtr.Zero, IntPtr.Zero);
+        tcs.Task.GetAwaiter().GetResult();
     }
 
     /// <summary>ロック取得済みの状態で呼び出すこと。</summary>

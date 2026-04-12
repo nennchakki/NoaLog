@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using NoaLog.Core.Dict;
@@ -379,7 +380,7 @@ public class SqliteStorage
         {
             Id = reader.GetString(reader.GetOrdinal("id")),
             ProfileId = reader.GetString(reader.GetOrdinal("profile_id")),
-            Timestamp = DateTime.Parse(reader.GetString(reader.GetOrdinal("timestamp"))),
+            Timestamp = DateTime.Parse(reader.GetString(reader.GetOrdinal("timestamp")), CultureInfo.InvariantCulture),
             LogType = Enum.Parse<LogType>(reader.GetString(reader.GetOrdinal("log_type")), ignoreCase: true),
             RawHeader = reader.GetString(reader.GetOrdinal("raw_header")),
             RawBody = reader.GetString(reader.GetOrdinal("raw_body")),
@@ -394,8 +395,8 @@ public class SqliteStorage
             OcrConfidence = reader.GetDouble(reader.GetOrdinal("ocr_confidence")),
             IsDeleted = reader.GetInt64(reader.GetOrdinal("is_deleted")) != 0,
             IsDuplicate = reader.GetInt64(reader.GetOrdinal("is_duplicate")) != 0,
-            CreatedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("created_at"))),
-            UpdatedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("updated_at"))),
+            CreatedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("created_at")), CultureInfo.InvariantCulture),
+            UpdatedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("updated_at")), CultureInfo.InvariantCulture),
         };
     }
 
@@ -414,8 +415,8 @@ public class SqliteStorage
             OcrSettings = DeserializeJson<Dictionary<string, object>>(
                 GetNullableString(reader, "ocr_settings")),
             IsActive = reader.GetInt64(reader.GetOrdinal("is_active")) != 0,
-            CreatedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("created_at"))),
-            UpdatedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("updated_at"))),
+            CreatedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("created_at")), CultureInfo.InvariantCulture),
+            UpdatedAt = DateTime.Parse(reader.GetString(reader.GetOrdinal("updated_at")), CultureInfo.InvariantCulture),
         };
     }
 

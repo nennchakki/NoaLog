@@ -1005,7 +1005,7 @@ public partial class MainWindow : Window
         var selectedIds = _selectedCards.Select(c => c.EntryId).ToHashSet();
         var entries = selectedIds.Count > 0
             ? _logEntries.Where(e => selectedIds.Contains(e.Id)).ToList()
-            : _logEntries;
+            : _logEntries.ToList();
 
         var dialog = new ExportDialog(entries);
         await dialog.ShowDialog<object?>(this);

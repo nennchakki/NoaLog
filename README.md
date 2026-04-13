@@ -20,8 +20,12 @@
 
 ※ GPU未搭載でもCPU推論で動作しますが、OCR速度は大幅に低下します
 
+## ダウンロード
+
+**[>>> Windows版インストーラーをダウンロード <<<](https://github.com/nennchakki/NoaLog/releases/download/v0.1.0/NoaLogInstaller.exe)**
+
 ## インストール（Windows）
-1. [Releases](https://github.com/nennchakki/NoaLog/releases) から `NoaLogInstaller.exe` をダウンロード
+1. 上のリンクから `NoaLogInstaller.exe` をダウンロード
 2. インストーラーを実行（NoaLog本体 + Ollama + OCRモデルが自動セットアップ）
 3. デスクトップの NoaLog アイコンから起動
 

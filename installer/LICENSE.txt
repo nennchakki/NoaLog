@@ -46,4 +46,27 @@ NoaLogは以下のオープンソースソフトウェアを使用していま�
 - FuzzySharp (MIT License)
 - SixLabors.ImageSharp (Apache License 2.0)
 
+8. 本ソフトウェアについて
+
+NoaLogは、ゲーム画面に表示されるテキストをOCR（光学文字認識）で
+読み取り、ログとして記録するツールです。
+ゲームのデータファイルへのアクセスや、ゲーム素材の抽出・再配布は
+行いません。
+
+9. ブルーアーカイブに関する二次創作について
+
+本ソフトウェアは、株式会社Yostarが定める
+「ブルーアーカイブ」二次創作ガイドライン
+（https://bluearchive.jp/fankit/guidelines）
+に基づき、個人による非営利目的のツールとして作成されています。
+
+本ソフトウェアに関するお問い合わせ:
+  GitHub: https://github.com/nennchakki/NoaLog
+
+ブルーアーカイブ二次創作ガイドラインに関するお問い合わせ:
+  cs@bluearchive.jp
+
+「ブルーアーカイブ」は株式会社Yostarの登録商標です。
+本ソフトウェアは株式会社Yostarとは一切関係ありません。
+
 著作権者: nennchakki

@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- 外側リング（白） -->
-  <circle cx="256" cy="256" r="225" fill="none" stroke="white" stroke-width="18"/>
+  <circle cx="256" cy="256" r="225" fill="none" stroke="white" stroke-width="20"/>
   <!-- 青いアーク（12時→9時、外側リングに重なる） -->
-  <path d="M 256 31 A 225 225 0 0 0 31 256" fill="none" stroke="#3296D2" stroke-width="18" stroke-linecap="butt"/>
-  <!-- 内側リング（ライトブルー） -->
-  <circle cx="256" cy="256" r="101" fill="none" stroke="#B4DCF0" stroke-width="9"/>
+  <path d="M 256 31 A 225 225 0 0 0 31 256" fill="none" stroke="#2088C8" stroke-width="20" stroke-linecap="butt"/>
+  <!-- 内側リング（ライトブルー、濃め） -->
+  <circle cx="256" cy="256" r="101" fill="none" stroke="#88C8E8" stroke-width="10"/>
 </svg>

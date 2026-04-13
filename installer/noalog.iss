@@ -24,9 +24,6 @@ Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 ; NoaLog本体（self-contained publish）
 Source: "publish\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
-; Ollamaセットアップスクリプト
-Source: "setup-ollama.bat"; DestDir: "{app}"; Flags: ignoreversion
-
 [Icons]
 Name: "{group}\NoaLog"; Filename: "{app}\NoaLog.exe"
 Name: "{commondesktop}\NoaLog"; Filename: "{app}\NoaLog.exe"; Tasks: desktopicon
@@ -35,19 +32,45 @@ Name: "{commondesktop}\NoaLog"; Filename: "{app}\NoaLog.exe"; Tasks: desktopicon
 Name: "desktopicon"; Description: "デスクトップにショートカットを作成"; GroupDescription: "追加オプション:"
 
 [Run]
-; Ollama DL + モデルセットアップ
-Filename: "{app}\setup-ollama.bat"; Parameters: """{app}"""; \
-    StatusMsg: "Ollama + OCRモデルをダウンロード中... インターネット接続が必要です"; \
-    Flags: waituntilterminated
-
 ; NoaLog起動オプション
 Filename: "{app}\NoaLog.exe"; Description: "NoaLogを起動"; \
     Flags: nowait postinstall skipifsilent unchecked
 
 [UninstallRun]
-; アンインストール時にOllamaプロセスを停止
 Filename: "{cmd}"; Parameters: "/c taskkill /f /im ollama.exe 2>nul"; Flags: runhidden
 
 [UninstallDelete]
-; アンインストール時にアプリデータを削除
 Type: filesandordirs; Name: "{userappdata}\NoaLog"
+
+[Code]
+procedure DownloadAndSetupOllama();
+var
+  ResultCode: Integer;
+  ZipPath, OllamaDir: String;
+begin
+  OllamaDir := ExpandConstant('{app}\ollama');
+  ZipPath := ExpandConstant('{tmp}\ollama-windows-amd64.zip');
+
+  WizardForm.StatusLabel.Caption := 'Ollamaをダウンロード中...';
+  Exec('curl.exe', '-L -o "' + ZipPath + '" https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.zip',
+       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
+  WizardForm.StatusLabel.Caption := 'Ollamaを展開中...';
+  Exec('powershell.exe', '-Command "Expand-Archive -Path ''' + ZipPath + ''' -DestinationPath ''' + OllamaDir + ''' -Force"',
+       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
+  DeleteFile(ZipPath);
+
+  WizardForm.StatusLabel.Caption := 'Ollamaサーバーを起動中...';
+  Exec(OllamaDir + '\ollama.exe', 'serve', '', SW_HIDE, ewNoWait, ResultCode);
+
+  WizardForm.StatusLabel.Caption := 'OCRモデルをダウンロード中 (glm-ocr, 約2.2GB)...';
+  Sleep(5000);
+  Exec(OllamaDir + '\ollama.exe', 'pull glm-ocr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    DownloadAndSetupOllama();
+end;

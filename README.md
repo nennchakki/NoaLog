@@ -52,5 +52,13 @@ dotnet publish src/NoaLog.App -c Release -r win-x64 --self-contained true -p:Pub
 dotnet publish src/NoaLog.App -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true
 ```
 
+## 二次創作ガイドラインについて
+
+本ソフトウェアは、株式会社Yostarが定める[「ブルーアーカイブ」二次創作ガイドライン](https://bluearchive.jp/fankit/guidelines)に基づき、個人による非営利目的のツールとして作成されています。
+
+ゲームのデータファイルへのアクセスや、ゲーム素材の抽出・再配布は行いません。
+
+「ブルーアーカイブ」は株式会社Yostarの登録商標です。本ソフトウェアは株式会社Yostarとは一切関係ありません。
+
 ## ライセンス
 See [LICENSE](LICENSE)

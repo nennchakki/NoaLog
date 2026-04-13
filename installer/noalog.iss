@@ -1,5 +1,4 @@
 ; NoaLog Installer - Inno Setup Script
-; Windows上で Inno Setup Compiler (iscc) を使ってコンパイルする
 
 [Setup]
 AppName=NoaLog
@@ -25,8 +24,8 @@ Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 ; NoaLog本体（self-contained publish）
 Source: "publish\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
-; Ollama
-Source: "ollama\*"; DestDir: "{app}\ollama"; Flags: recursesubdirs ignoreversion
+; Ollamaセットアップスクリプト
+Source: "setup-ollama.bat"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\NoaLog"; Filename: "{app}\NoaLog.exe"
@@ -36,13 +35,11 @@ Name: "{commondesktop}\NoaLog"; Filename: "{app}\NoaLog.exe"; Tasks: desktopicon
 Name: "desktopicon"; Description: "デスクトップにショートカットを作成"; GroupDescription: "追加オプション:"
 
 [Run]
-; インストール後にOllamaサーバーを起動してモデルをダウンロード
-Filename: "{app}\ollama\ollama.exe"; Parameters: "serve"; \
-    StatusMsg: "Ollamaサーバーを起動中..."; Flags: runhidden nowait
-; 5秒待ってからモデルダウンロード
-Filename: "{cmd}"; Parameters: "/c timeout /t 5 /nobreak >nul && ""{app}\ollama\ollama.exe"" pull glm-ocr"; \
-    StatusMsg: "OCRモデルをダウンロード中 (glm-ocr 2.2GB)... インターネット接続が必要です"; \
-    Flags: runhidden waituntilterminated
+; Ollama DL + モデルセットアップ
+Filename: "{app}\setup-ollama.bat"; Parameters: """{app}"""; \
+    StatusMsg: "Ollama + OCRモデルをダウンロード中... インターネット接続が必要です"; \
+    Flags: waituntilterminated
+
 ; NoaLog起動オプション
 Filename: "{app}\NoaLog.exe"; Description: "NoaLogを起動"; \
     Flags: nowait postinstall skipifsilent unchecked

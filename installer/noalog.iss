@@ -47,6 +47,20 @@ Filename: "{cmd}"; Parameters: "/c taskkill /f /im ollama.exe 2>nul"; Flags: run
 Type: filesandordirs; Name: "{userappdata}\NoaLog"
 
 [Code]
+function InitializeSetup(): Boolean;
+begin
+  Result := MsgBox(
+    'NoaLog のインストールには以下の条件が必要です:' + #13#10 +
+    '' + #13#10 +
+    '・ディスク空き容量: 6GB以上' + #13#10 +
+    '・メモリ (RAM): 4GB以上' + #13#10 +
+    '・インターネット接続（初回約4GBのダウンロード）' + #13#10 +
+    '・GPU推奨: NVIDIA GTX 1650以上（なくても動作可）' + #13#10 +
+    '' + #13#10 +
+    'インストールを続行しますか？',
+    mbConfirmation, MB_YESNO) = IDYES;
+end;
+
 procedure DownloadAndSetupOllama();
 var
   ResultCode: Integer;

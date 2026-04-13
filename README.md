@@ -8,6 +8,18 @@
 - OCRエンジン: Ollama経由のVLM（デフォルト: glm-ocr 0.9B）
 - Windows / macOS 対応
 
+## システム要件
+
+| 項目 | 最小 | 推奨 |
+|------|------|------|
+| OS | Windows 10 (64bit) / macOS 11+ | Windows 11 / macOS 14+ |
+| RAM | 4GB | 8GB以上 |
+| GPU | なし（CPU動作可） | NVIDIA GTX 1650以上（VRAM 2GB+） |
+| ディスク | 6GB空き | 10GB空き |
+| ネット | 必須（初回約4GB DL） | - |
+
+※ GPU未搭載でもCPU推論で動作しますが、OCR速度は大幅に低下します
+
 ## インストール（Windows）
 1. [Releases](https://github.com/nennchakki/NoaLog/releases) から `NoaLogInstaller.exe` をダウンロード
 2. インストーラーを実行（NoaLog本体 + Ollama + OCRモデルが自動セットアップ）

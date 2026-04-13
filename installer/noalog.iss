@@ -25,10 +25,12 @@ Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 [Files]
 ; NoaLog本体（self-contained publish）
 Source: "publish\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+; アイコンファイル
+Source: "..\src\NoaLog.App\Assets\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\NoaLog"; Filename: "{app}\NoaLog.exe"
-Name: "{commondesktop}\NoaLog"; Filename: "{app}\NoaLog.exe"; Tasks: desktopicon
+Name: "{group}\NoaLog"; Filename: "{app}\NoaLog.exe"; IconFilename: "{app}\icon.ico"
+Name: "{commondesktop}\NoaLog"; Filename: "{app}\NoaLog.exe"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "デスクトップにショートカットを作成"; GroupDescription: "追加オプション:"

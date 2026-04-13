@@ -16,6 +16,8 @@ WizardStyle=modern
 LicenseFile=LICENSE.txt
 InfoAfterFile=USAGE.txt
 PrivilegesRequired=admin
+; Ollama (3.4GB) + glm-ocr model (2.2GB) = 約6GB追加
+ExtraDiskSpaceRequired=6442450944
 
 [Languages]
 Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"

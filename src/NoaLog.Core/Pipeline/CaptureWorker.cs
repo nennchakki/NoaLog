@@ -17,7 +17,9 @@ public class CaptureWorker
     private Task? _workerTask;
 
     // 並列処理制御
-    private readonly SemaphoreSlim _concurrency = new(3, 3);
+    // RX5700XT上で単一のOllama VLMを並列実行するとGPU/VRAM/推論キューが競合し
+    // 1件あたりのレイテンシが悪化するため、まずは1並列で安定動作を優先する。
+    private readonly SemaphoreSlim _concurrency = new(1, 1);
     private readonly object _orderLock = new();
     private readonly SortedDictionary<int, LogEntry> _completedBuffer = new();
     private int _nextSequence;

@@ -4,30 +4,67 @@
 画面キャプチャ＋AI-OCRで自動的にログとして記録するデスクトップアプリ。
 
 ## 特徴
-- 完全ローカル動作（外部サーバーへの通信なし）
-- OCRエンジン: Ollama経由のVLM（デフォルト: glm-ocr 0.9B）
+- Gemini API によるクラウドOCR（高精度・軽量）
+- 3つのモデルから選択可能（設定画面で切り替え）
 - Windows / macOS 対応
 
 ## システム要件
 
-| 項目 | 最小 | 推奨 |
-|------|------|------|
-| OS | Windows 10 (64bit) / macOS 11+ | Windows 11 / macOS 14+ |
-| RAM | 4GB | 8GB以上 |
-| GPU | なし（CPU動作可） | NVIDIA GTX 1650以上（VRAM 2GB+） |
-| ディスク | 6GB空き | 10GB空き |
-| ネット | 必須（初回約4GB DL） | - |
+| 項目 | 要件 |
+|------|------|
+| OS | Windows 10 (64bit) / macOS 11+ |
+| RAM | 4GB以上 |
+| ネット | 必須（Gemini API通信用） |
 
-※ GPU未搭載でもCPU推論で動作しますが、OCR速度は大幅に低下します
+## Gemini API キーの取得と設定
+
+### 1. APIキーの取得
+1. [Google AI Studio](https://aistudio.google.com/apikey) にアクセス
+2. Googleアカウントでログイン
+3. 「APIキーを作成」をクリック
+4. 表示されたAPIキーをコピー（`AIza...` で始まる文字列）
+
+### 2. APIキーの設定
+
+#### Windows (PowerShell)
+```powershell
+# 現在のセッションのみ有効
+$env:GEMINI_API_KEY = 'ここにAPIキーを貼り付け'
+
+# 永続化（PC再起動後も有効）
+[System.Environment]::SetEnvironmentVariable('GEMINI_API_KEY', 'ここにAPIキーを貼り付け', 'User')
+```
+
+#### macOS / Linux (bash/zsh)
+```bash
+# ~/.zshrc または ~/.bashrc に追記
+echo 'export GEMINI_API_KEY="ここにAPIキーを貼り付け"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+### 3. 確認
+```powershell
+# Windows
+echo $env:GEMINI_API_KEY
+```
+```bash
+# macOS / Linux
+echo $GEMINI_API_KEY
+```
+
+設定画面のAPIキー欄に「設定済み」と表示されればOK。
+
+### 選択可能なモデル
+
+| モデル | 特徴 | 料金 (入力/100万トークン) |
+|--------|------|--------------------------|
+| gemini-3.1-flash-lite | **推奨** 高速・低コスト・高精度 | $0.25 |
+| gemini-2.5-flash-lite | 軽量・最安 | $0.10 |
+| gemini-2.5-pro | 最高精度（速度は劣る） | $1.25 |
 
 ## ダウンロード
 
-**[>>> Windows版インストーラーをダウンロード <<<](https://github.com/nennchakki/NoaLog/releases/download/v0.1.0/NoaLogInstaller.exe)**
-
-## インストール（Windows）
-1. 上のリンクから `NoaLogInstaller.exe` をダウンロード
-2. インストーラーを実行（NoaLog本体 + Ollama + OCRモデルが自動セットアップ）
-3. デスクトップの NoaLog アイコンから起動
+**[>>> Windows版をダウンロード <<<](https://github.com/nennchakki/NoaLog/releases)**
 
 ## 使い方
 
@@ -58,16 +95,14 @@
 ### 注意事項
 - **Ctrl+R（範囲指定）だけはNoaLogのオーバーレイが最前面に表示される**。ゲーム開始前にウィンドウモードで範囲指定を済ませ、その後フルスクリーンにするのがおすすめ
 - 範囲指定は最初の1回だけでOK（プロファイルに保存される）
-- ENGINE パネルに「Ready」と表示されるまではOCRが使えない（初回はモデルダウンロードに時間がかかる）
-- 初回起動時はOCRモデルのGPUロードに30秒〜1分かかる。2回目以降はキャッシュされるため数秒で起動する
-- GPU（NVIDIA/AMD）がある場合、Ollamaが自動でGPU推論を使う。CPUのみでも動作するが遅い
+- 設定画面のAPIキー欄が「未設定」の場合はOCRが動作しない
 
 ### ホットキーの変更
 Settings画面からホットキーの割り当てを変更可能。他のアプリと競合する場合に使用。
 
 ## ビルド方法
 ```bash
-# Windows
+# Windows (.exe)
 dotnet publish src/NoaLog.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
 
 # macOS (Apple Silicon)

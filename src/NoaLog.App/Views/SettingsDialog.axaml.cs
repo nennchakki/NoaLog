@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Http;
-using System.Runtime.InteropServices;
-using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -73,22 +70,31 @@ public partial class SettingsDialog : Window
         if (inferenceLogToggle != null)
             inferenceLogToggle.IsChecked = string.Equals(inferenceLog, "True", StringComparison.OrdinalIgnoreCase);
 
-        // Ollama設定
-        var endpointBox = this.FindControl<TextBox>("OllamaEndpointBox");
-        var currentModelLabel = this.FindControl<TextBlock>("CurrentModelLabel");
-        var savedEndpoint = _storage?.GetSetting("ollama.endpoint") ?? "http://localhost:11434";
-        var savedModel = _storage?.GetSetting("ollama.model") ?? "glm-ocr:latest";
+        // Gemini設定
+        var savedGeminiModel = _storage?.GetSetting("gemini.model") ?? "gemini-3.1-flash-lite";
+        var radio31 = this.FindControl<RadioButton>("GeminiModel31FlashLite");
+        var radio25Lite = this.FindControl<RadioButton>("GeminiModel25FlashLite");
+        var radio25Pro = this.FindControl<RadioButton>("GeminiModel25Pro");
+        if (radio31 != null) radio31.IsChecked = savedGeminiModel == "gemini-3.1-flash-lite";
+        if (radio25Lite != null) radio25Lite.IsChecked = savedGeminiModel == "gemini-2.5-flash-lite";
+        if (radio25Pro != null) radio25Pro.IsChecked = savedGeminiModel == "gemini-2.5-pro";
 
-        if (endpointBox != null) endpointBox.Text = savedEndpoint;
-        if (currentModelLabel != null) currentModelLabel.Text = savedModel;
+        var geminiStatus = this.FindControl<TextBlock>("GeminiApiKeyStatus");
+        if (geminiStatus != null)
+        {
+            var hasKey = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GEMINI_API_KEY"));
+            geminiStatus.Text = hasKey ? "設定済み ✓" : "未設定";
+            geminiStatus.Foreground = hasKey
+                ? SolidColorBrush.Parse("#16A34A")
+                : SolidColorBrush.Parse("#DC2626");
+        }
+
     }
 
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
         LoadSettings();
-        // 起動時にモデル一覧を自動取得
-        OnRefreshModels(null, new RoutedEventArgs());
     }
 
     private void OnRegionHotkeyKeyDown(object? sender, KeyEventArgs e)
@@ -179,14 +185,20 @@ public partial class SettingsDialog : Window
             if (Owner is MainWindow mainWindow)
                 mainWindow.SetInferenceLogVisible(inferenceLogToggle?.IsChecked == true);
 
-            // Ollama エンドポイント保存
-            var endpointBox = this.FindControl<TextBox>("OllamaEndpointBox");
-            if (endpointBox?.Text is { } ep && !string.IsNullOrWhiteSpace(ep))
-            {
-                _storage.SetSetting("ollama.endpoint", ep.Trim());
-                if (App.OcrEngine is OllamaOcrClient qwen)
-                    qwen.SetBaseUrl(ep.Trim());
-            }
+            // Gemini モデル保存
+            var geminiModel = "gemini-3.1-flash-lite";
+            if (this.FindControl<RadioButton>("GeminiModel25FlashLite")?.IsChecked == true)
+                geminiModel = "gemini-2.5-flash-lite";
+            else if (this.FindControl<RadioButton>("GeminiModel25Pro")?.IsChecked == true)
+                geminiModel = "gemini-2.5-pro";
+            _storage.SetSetting("gemini.model", geminiModel);
+
+            // Gemini エンジン再生成（モデル変更を反映）
+            if (App.OcrEngine is GeminiOcrClient old)
+                old.Dispose();
+            App.OcrEngine = new GeminiOcrClient(modelId: geminiModel);
+            _ = App.OcrEngine.InitializeAsync();
+            App.NotifyOcrEngineChanged();
         }
 
         Close(true);
@@ -283,109 +295,4 @@ public partial class SettingsDialog : Window
         return result.ToString().TrimEnd();
     }
 
-    // ── Ollama モデル管理 ──
-
-    private static readonly HashSet<string> RecommendedPrefixes = new() { "glm-ocr", "gemma4" };
-
-    private async void OnRefreshModels(object? sender, RoutedEventArgs e)
-    {
-        var endpointBox = this.FindControl<TextBox>("OllamaEndpointBox");
-        var statusLabel = this.FindControl<TextBlock>("ModelStatusLabel");
-        var modelListPanel = this.FindControl<StackPanel>("ModelListPanel");
-        var endpoint = endpointBox?.Text?.Trim() ?? "http://localhost:11434";
-
-        try
-        {
-            if (statusLabel != null) statusLabel.Text = "取得中...";
-
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-            var response = await http.GetAsync($"{endpoint.TrimEnd('/')}/api/tags");
-            response.EnsureSuccessStatusCode();
-
-            using var stream = await response.Content.ReadAsStreamAsync();
-            using var doc = await JsonDocument.ParseAsync(stream);
-
-            var currentModel = _storage?.GetSetting("ollama.model") ?? "glm-ocr:latest";
-
-            if (modelListPanel != null)
-            {
-                modelListPanel.Children.Clear();
-
-                if (doc.RootElement.TryGetProperty("models", out var models))
-                {
-                    foreach (var model in models.EnumerateArray())
-                    {
-                        var name = model.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
-                        if (string.IsNullOrEmpty(name)) continue;
-
-                        var isRecommended = RecommendedPrefixes.Any(p => name.StartsWith(p));
-                        var isSelected = name == currentModel;
-
-                        var radio = new RadioButton
-                        {
-                            GroupName = "OllamaModel",
-                            IsChecked = isSelected,
-                            Margin = new Thickness(0, 2),
-                        };
-
-                        var label = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 6 };
-                        label.Children.Add(new TextBlock
-                        {
-                            Text = name,
-                            FontWeight = isSelected ? FontWeight.Bold : FontWeight.Normal,
-                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                        });
-
-                        if (isRecommended)
-                        {
-                            label.Children.Add(new Border
-                            {
-                                Background = SolidColorBrush.Parse("#128AFA"),
-                                CornerRadius = new CornerRadius(3),
-                                Padding = new Thickness(4, 1),
-                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                                Child = new TextBlock
-                                {
-                                    Text = "★ 推奨",
-                                    FontSize = 10,
-                                    Foreground = Brushes.White,
-                                },
-                            });
-                        }
-
-                        radio.Content = label;
-
-                        var modelName = name; // capture for closure
-                        radio.IsCheckedChanged += (_, _) =>
-                        {
-                            if (radio.IsChecked == true)
-                                OnModelSelected(modelName);
-                        };
-
-                        modelListPanel.Children.Add(radio);
-                    }
-                }
-            }
-
-            if (statusLabel != null) statusLabel.Text = "";
-        }
-        catch (Exception ex)
-        {
-            if (statusLabel != null) statusLabel.Text = $"接続エラー: {ex.Message}";
-        }
-    }
-
-    private async void OnModelSelected(string modelName)
-    {
-        _storage?.SetSetting("ollama.model", modelName);
-
-        var currentModelLabel = this.FindControl<TextBlock>("CurrentModelLabel");
-        if (currentModelLabel != null) currentModelLabel.Text = modelName;
-
-        if (App.OcrEngine is OllamaOcrClient qwen)
-        {
-            await qwen.SwitchModelAsync(modelName);
-            App.NotifyOcrEngineChanged();
-        }
-    }
 }

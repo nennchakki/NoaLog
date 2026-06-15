@@ -12,7 +12,6 @@ using NoaLog.Core.Capture;
 using NoaLog.Core.Dict;
 using NoaLog.Core.Hotkey;
 using NoaLog.Core.Ocr;
-using NoaLog.Core.Ollama;
 using NoaLog.Core.Pipeline;
 using NoaLog.Core.PostProcess;
 using NoaLog.Core.Storage;
@@ -25,12 +24,11 @@ public partial class App : Application
     public static SqliteStorage? Storage { get; private set; }
     public static DictManager? DictManager { get; private set; }
     public static DictProcessor? DictProcessor { get; private set; }
-    public static IOcrEngine? OcrEngine { get; private set; }
+    public static IOcrEngine? OcrEngine { get; set; }
     public static CaptureQueue? CaptureQueue { get; private set; }
     public static CaptureWorker? CaptureWorker { get; private set; }
     public static IScreenCapture? ScreenCapture { get; private set; }
     public static IHotkeyManager? HotkeyManager { get; private set; }
-    public static OllamaManager? OllamaManager { get; private set; }
 
     /// <summary>OCRエンジンが切り替わった時に発火するイベント</summary>
     public static event EventHandler? OcrEngineChanged;
@@ -81,15 +79,9 @@ public partial class App : Application
         ScreenCapture ??= new StubScreenCapture();
         HotkeyManager ??= new StubHotkeyManager();
 
-        // 5. OCRエンジン（保存済み設定を反映）
-        var savedEndpoint = Storage.GetSetting("ollama.endpoint") ?? "http://localhost:11434";
-        var savedModel = Storage.GetSetting("ollama.model") ?? "glm-ocr:latest";
-        // 同梱Ollama or システムインストール版
-        var bundledOllama = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ollama",
-            OperatingSystem.IsWindows() ? "ollama.exe" : "ollama");
-        var ollamaPath = File.Exists(bundledOllama) ? bundledOllama : "ollama";
-        OllamaManager = new OllamaManager(ollamaPath);
-        OcrEngine = new OllamaOcrClient(savedEndpoint, savedModel);
+        // 5. OCRエンジン（Gemini API）
+        var savedGeminiModel = Storage.GetSetting("gemini.model") ?? "gemini-3.1-flash-lite";
+        OcrEngine = new GeminiOcrClient(modelId: savedGeminiModel);
         _ = InitializeOcrAsync();
 
         // 6. キャプチャパイプライン
@@ -115,12 +107,6 @@ public partial class App : Application
     {
         try
         {
-            var modelName = (OcrEngine as OllamaOcrClient)?.ModelName ?? "glm-ocr:latest";
-            await OllamaManager!.StartServerAsync(CancellationToken.None);
-            if (!await OllamaManager.IsModelAvailableAsync(modelName, CancellationToken.None))
-            {
-                await OllamaManager.PullModelAsync(modelName, null, CancellationToken.None);
-            }
             await OcrEngine!.InitializeAsync(CancellationToken.None);
             OcrEngineChanged?.Invoke(null, EventArgs.Empty);
         }

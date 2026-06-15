@@ -258,7 +258,7 @@
                     </StackPanel>
                 </Border>
 
-                <!-- ═══ Section 3: Ollama モデル設定 ═══ -->
+                <!-- ═══ Section: Gemini モデル設定 ═══ -->
                 <Border Background="{DynamicResource BgPanel}"
                         BorderBrush="{DynamicResource BorderWarm}"
                         BorderThickness="1"
@@ -266,68 +266,57 @@
                         Padding="20"
                         Margin="0,0,0,16">
                     <StackPanel Spacing="16">
-                        <TextBlock Text="Ollama モデル設定"
+                        <TextBlock Text="Gemini モデル設定"
                                    FontSize="{DynamicResource FontLg}"
                                    FontWeight="Bold"
                                    Foreground="{DynamicResource TextPrimary}" />
+                        <TextBlock Text="Gemini APIで使用するモデルを選択します。環境変数 GEMINI_API_KEY が必要です。"
+                                   FontSize="{DynamicResource FontSm}"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   TextWrapping="Wrap" />
 
-                        <!-- エンドポイントURL -->
                         <StackPanel Spacing="6">
-                            <TextBlock Text="エンドポイント"
-                                       FontWeight="Bold"
-                                       FontSize="{DynamicResource FontBase}"
-                                       Foreground="{DynamicResource TextPrimary}" />
-                            <TextBox Name="OllamaEndpointBox"
-                                     Watermark="http://localhost:11434"
-                                     MinHeight="36"
-                                     Background="{DynamicResource BgInput}"
-                                     BorderBrush="{DynamicResource BorderInputWarm}"
-                                     BorderThickness="1"
-                                     CornerRadius="{DynamicResource RadiusSm}"
-                                     Padding="10,8"
-                                     FontSize="{DynamicResource FontBase}" />
+                            <RadioButton Name="GeminiModel31FlashLite"
+                                         GroupName="GeminiModel"
+                                         IsChecked="True">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="gemini-3.1-flash-lite"
+                                               VerticalAlignment="Center" />
+                                    <Border Background="#128AFA"
+                                            CornerRadius="3"
+                                            Padding="4,1"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="★ 推奨"
+                                                   FontSize="10"
+                                                   Foreground="White" />
+                                    </Border>
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Name="GeminiModel25FlashLite"
+                                         GroupName="GeminiModel">
+                                <TextBlock Text="gemini-2.5-flash-lite" />
+                            </RadioButton>
+                            <RadioButton Name="GeminiModel25Pro"
+                                         GroupName="GeminiModel">
+                                <TextBlock Text="gemini-2.5-pro" />
+                            </RadioButton>
                         </StackPanel>
 
-                        <!-- 現在のモデル -->
+                        <!-- APIキー状態 -->
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="現在のモデル:"
+                            <TextBlock Text="APIキー:"
                                        FontSize="{DynamicResource FontBase}"
                                        Foreground="{DynamicResource TextSecondary}"
                                        VerticalAlignment="Center" />
-                            <TextBlock Name="CurrentModelLabel"
+                            <TextBlock Name="GeminiApiKeyStatus"
                                        FontSize="{DynamicResource FontBase}"
                                        FontWeight="Bold"
-                                       Foreground="{DynamicResource TextPrimary}"
                                        VerticalAlignment="Center" />
                         </StackPanel>
-
-                        <!-- モデル一覧 + 更新ボタン -->
-                        <DockPanel>
-                            <Button DockPanel.Dock="Right"
-                                    Name="RefreshModelsButton"
-                                    Content="更新"
-                                    Width="80" Height="36"
-                                    Background="Transparent"
-                                    Foreground="{DynamicResource TextPrimary}"
-                                    BorderBrush="{DynamicResource BorderInputWarm}"
-                                    BorderThickness="1"
-                                    CornerRadius="{DynamicResource RadiusSm}"
-                                    FontSize="{DynamicResource FontSm}"
-                                    HorizontalContentAlignment="Center"
-                                    Cursor="Hand"
-                                    Click="OnRefreshModels" />
-                            <TextBlock Name="ModelStatusLabel"
-                                       Text=""
-                                       FontSize="{DynamicResource FontSm}"
-                                       Foreground="{DynamicResource TextSecondary}"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,8,0" />
-                        </DockPanel>
-
-                        <!-- モデルリスト -->
-                        <StackPanel Name="ModelListPanel" Spacing="4" />
                     </StackPanel>
                 </Border>
+
+
 
             </StackPanel>
         </ScrollViewer>

@@ -78,7 +78,7 @@ public partial class MainWindow : Window
         if (App.HotkeyManager != null)
             App.HotkeyManager.HotkeyPressed -= OnGlobalHotkeyPressed;
         try { App.HotkeyManager?.UnregisterAll(); } catch { }
-        try { App.OllamaManager?.Dispose(); } catch { }
+        try { (App.OcrEngine as IDisposable)?.Dispose(); } catch { }
         Environment.Exit(0);
     }
 
@@ -711,12 +711,36 @@ public partial class MainWindow : Window
         if (_haloIndicator != null)
             _haloIndicator.State = HaloState.Processing;
 
-        Console.Error.WriteLine($"[Capture] Enqueueing capture request for profile {_currentProfile.Id}");
+        if (App.ScreenCapture == null)
+        {
+            Console.Error.WriteLine("[Capture] No screen capture — aborting");
+            if (_haloIndicator != null)
+                _haloIndicator.State = HaloState.Failed;
+            return;
+        }
+
+        // 発火時点で画面キャプチャを完了させてから enqueue する。
+        // ※ OCR時点で撮ると、連続発火時に「現在の画面」をN回読んでしまう。
+        byte[] textImage;
+        try
+        {
+            textImage = await App.ScreenCapture.CaptureRegionAsync(_currentProfile.TextAreaRect);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[Capture] CaptureRegionAsync failed: {ex.Message}");
+            if (_haloIndicator != null)
+                _haloIndicator.State = HaloState.Failed;
+            return;
+        }
+
+        Console.Error.WriteLine($"[Capture] Enqueueing capture request for profile {_currentProfile.Id} ({textImage.Length} bytes)");
 
         var request = new CaptureRequest(
             _currentProfile.Id,
             _currentProfile.TextAreaRect,
-            _currentProfile.NarratorRect
+            _currentProfile.NarratorRect,
+            textImage
         );
         await App.CaptureQueue.EnqueueAsync(request);
     }
@@ -730,7 +754,7 @@ public partial class MainWindow : Window
                 _haloIndicator.State = HaloState.Failed;
             return;
         }
-        if (App.CaptureQueue == null || App.OcrEngine == null || !App.OcrEngine.IsReady)
+        if (App.CaptureQueue == null || App.OcrEngine == null || !App.OcrEngine.IsReady || App.ScreenCapture == null)
         {
             if (_haloIndicator != null)
                 _haloIndicator.State = HaloState.Failed;
@@ -740,11 +764,25 @@ public partial class MainWindow : Window
         if (_haloIndicator != null)
             _haloIndicator.State = HaloState.Processing;
 
+        byte[] narratorImage;
+        try
+        {
+            narratorImage = await App.ScreenCapture.CaptureRegionAsync(_currentProfile.NarratorRect);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[Capture] Narrator CaptureRegionAsync failed: {ex.Message}");
+            if (_haloIndicator != null)
+                _haloIndicator.State = HaloState.Failed;
+            return;
+        }
+
         var narratorLabel = _storage.GetSetting("narrator.label") ?? _currentProfile.NarratorLabel;
         var request = new CaptureRequest(
             _currentProfile.Id,
             _currentProfile.NarratorRect,
             null,
+            narratorImage,
             "narration",
             narratorLabel
         );
